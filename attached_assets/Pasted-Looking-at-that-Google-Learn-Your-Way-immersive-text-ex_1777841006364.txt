@@ -1,0 +1,428 @@
+Looking at that Google Learn Your Way immersive text experience, here's how to build it:
+
+## Core Architecture
+
+```typescript
+// ImmersiveText.tsx - Main component
+interface ImmersiveTextProps {
+  content: TextBlock[];
+  interactives: Map<string, DiagramConfig>;
+}
+
+interface TextBlock {
+  id: string;
+  type: 'paragraph' | 'heading' | 'interactive-trigger';
+  content: string;
+  interactiveId?: string; // Links to diagram
+  triggerCondition?: 'scroll-into-view' | 'click' | 'time-delay';
+}
+```
+
+## Key Features to Replicate
+
+### 1. **Scroll-Synced Diagram Updates**
+The diagram changes as you scroll through text sections:
+
+```typescript
+const ImmersiveText = ({ content, interactives }) => {
+  const [activeInteractive, setActiveInteractive] = useState(null);
+  const [interactiveState, setInteractiveState] = useState({});
+  
+  useEffect(() => {
+    const observers = content
+      .filter(block => block.type === 'interactive-trigger')
+      .map(block => {
+        const element = document.getElementById(block.id);
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              setActiveInteractive(block.interactiveId);
+              setInteractiveState(interactives.get(block.interactiveId).initialState);
+            }
+          },
+          { threshold: 0.5 } // Trigger when 50% visible
+        );
+        observer.observe(element);
+        return observer;
+      });
+    
+    return () => observers.forEach(obs => obs.disconnect());
+  }, [content]);
+
+  return (
+    <div className="immersive-container">
+      <div className="text-column">
+        {content.map(block => (
+          <TextBlock key={block.id} block={block} />
+        ))}
+      </div>
+      <div className="diagram-column sticky">
+        <DiagramaticsCanvas 
+          config={interactives.get(activeInteractive)}
+          state={interactiveState}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+### 2. **Sticky Diagram Panel**
+The right panel stays fixed while text scrolls:
+
+```css
+.immersive-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.text-column {
+  /* Scrolls naturally */
+  padding-right: 2rem;
+}
+
+.diagram-column {
+  position: sticky;
+  top: 2rem;
+  height: calc(100vh - 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .immersive-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .diagram-column {
+    position: relative;
+    height: 400px;
+    top: 0;
+  }
+}
+```
+
+### 3. **Smooth Diagram Transitions**
+Use Diagramatics' animation capabilities:
+
+```typescript
+// DiagramaticsCanvas.tsx
+const DiagramaticsCanvas = ({ config, state }) => {
+  const svgRef = useRef(null);
+  const interactiveRef = useRef(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    if (!interactiveRef.current) {
+      interactiveRef.current = new Interactive(svgRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!config || !interactiveRef.current) return;
+    
+    setIsTransitioning(true);
+    
+    // Animate transition between states
+    const int = interactiveRef.current;
+    
+    // Example: fade out old, draw new, fade in
+    animateTransition(int, config, state, () => {
+      setIsTransitioning(false);
+    });
+  }, [config, state]);
+
+  return (
+    <div className={`diagram-container ${isTransitioning ? 'transitioning' : ''}`}>
+      <svg ref={svgRef} width="600" height="600" />
+    </div>
+  );
+};
+
+function animateTransition(int, config, state, onComplete) {
+  const duration = 400; // ms
+  const startTime = Date.now();
+  
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Easing function
+    const eased = 1 - Math.pow(1 - progress, 3);
+    
+    // Draw intermediate state
+    config.drawFunction(int, state, eased);
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      onComplete();
+    }
+  }
+  
+  animate();
+}
+```
+
+### 4. **Interactive Highlighting**
+Text blocks highlight when their diagram is active:
+
+```typescript
+const TextBlock = ({ block }) => {
+  const [isActive, setIsActive] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsActive(entry.isIntersecting),
+      { threshold: 0.5 }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div 
+      id={block.id}
+      ref={ref}
+      className={`text-block ${isActive ? 'active' : ''}`}
+    >
+      {block.type === 'heading' && <h2>{block.content}</h2>}
+      {block.type === 'paragraph' && <p>{block.content}</p>}
+    </div>
+  );
+};
+```
+
+```css
+.text-block {
+  padding: 2rem 0;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.text-block.active {
+  opacity: 1;
+}
+
+.text-block h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.text-block p {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+```
+
+### 5. **Example Lab: Probability Area Model**
+
+```typescript
+// labs/probabilityArea.ts
+export const probabilityAreaLab = {
+  id: 'probability-area',
+  title: 'Understanding Probability with Area Models',
+  
+  textBlocks: [
+    {
+      id: 'intro',
+      type: 'heading',
+      content: 'What is Probability?',
+    },
+    {
+      id: 'p1',
+      type: 'paragraph',
+      content: 'Probability measures how likely an event is to occur. We can visualize this using area.',
+      interactiveId: 'empty-square',
+      triggerCondition: 'scroll-into-view',
+    },
+    {
+      id: 'p2',
+      type: 'paragraph',
+      content: 'Imagine a square representing all possible outcomes. If we shade part of it, that represents the probability of an event.',
+      interactiveId: 'shaded-region',
+      triggerCondition: 'scroll-into-view',
+    },
+    {
+      id: 'p3',
+      type: 'paragraph',
+      content: 'The larger the shaded area, the higher the probability. A 50% probability means exactly half the square is shaded.',
+      interactiveId: 'fifty-percent',
+      triggerCondition: 'scroll-into-view',
+    },
+  ],
+  
+  interactives: new Map([
+    ['empty-square', {
+      initialState: { probability: 0 },
+      drawFunction: (int, state, progress) => {
+        const size = 400;
+        const square = rectangle(size, size)
+          .move_origin('center')
+          .fill('transparent')
+          .stroke('var(--border-color)')
+          .strokewidth(2);
+        
+        int.draw(square);
+      },
+    }],
+    
+    ['shaded-region', {
+      initialState: { probability: 0.3 },
+      drawFunction: (int, state, progress) => {
+        const size = 400;
+        const p = state.probability * progress; // Animate in
+        
+        const outer = rectangle(size, size)
+          .move_origin('center')
+          .fill('transparent')
+          .stroke('var(--border-color)')
+          .strokewidth(2);
+        
+        const shaded = rectangle(size, size * p)
+          .move_origin('top-center')
+          .position(V2(0, size / 2))
+          .fill('rgba(59, 130, 246, 0.3)')
+          .stroke('rgb(59, 130, 246)')
+          .strokewidth(2);
+        
+        const label = text(`P = ${(p * 100).toFixed(0)}%`)
+          .position(V2(0, 0))
+          .fill('var(--text-primary)');
+        
+        int.draw(outer, shaded, label);
+      },
+    }],
+    
+    ['fifty-percent', {
+      initialState: { probability: 0.5 },
+      drawFunction: (int, state, progress) => {
+        // Similar to above, but with 50% shading
+        // ...
+      },
+    }],
+  ]),
+};
+```
+
+### 6. **Content Authoring Format**
+
+For easy content creation, use a simple JSON/YAML format:
+
+```yaml
+# probability-area.yaml
+title: Understanding Probability with Area Models
+
+sections:
+  - type: heading
+    content: What is Probability?
+    
+  - type: paragraph
+    content: Probability measures how likely an event is to occur.
+    diagram:
+      type: area-model
+      state:
+        probability: 0
+      animation: fade-in
+      
+  - type: paragraph
+    content: If we shade part of the square, that represents probability.
+    diagram:
+      type: area-model
+      state:
+        probability: 0.3
+      animation: grow-from-top
+```
+
+Then parse it:
+
+```typescript
+function parseImmersiveContent(yaml: string): ImmersiveTextProps {
+  const parsed = YAML.parse(yaml);
+  
+  const content: TextBlock[] = parsed.sections.map((section, i) => ({
+    id: `block-${i}`,
+    type: section.type,
+    content: section.content,
+    interactiveId: section.diagram ? `diagram-${i}` : undefined,
+  }));
+  
+  const interactives = new Map();
+  parsed.sections.forEach((section, i) => {
+    if (section.diagram) {
+      interactives.set(`diagram-${i}`, {
+        type: section.diagram.type,
+        initialState: section.diagram.state,
+        animation: section.diagram.animation,
+      });
+    }
+  });
+  
+  return { content, interactives };
+}
+```
+
+### 7. **Progress Tracking**
+
+```typescript
+const ImmersiveText = ({ content, interactives }) => {
+  const [progress, setProgress] = useState(0);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress((scrolled / total) * 100);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <>
+      <div className="progress-bar" style={{ width: `${progress}%` }} />
+      {/* Rest of component */}
+    </>
+  );
+};
+```
+
+## Full Integration into Lumina
+
+```typescript
+// In your lesson player:
+const LessonPlayer = ({ lesson }) => {
+  if (lesson.format === 'immersive-text') {
+    return <ImmersiveText {...lesson.immersiveContent} />;
+  }
+  
+  // Existing challenge-based format
+  return <ChallengePlayer lesson={lesson} />;
+};
+```
+
+## Key Differences from Current Learning Center
+
+| Current Learning Center | Google's Immersive Text |
+|------------------------|-------------------------|
+| Lab separate from content | Diagram integrated with reading |
+| Three fixed discovery steps | Continuous scroll narrative |
+| Manual "Next" clicks | Automatic diagram updates on scroll |
+| Single diagram per lab | Multiple diagram states per topic |
+| Practice exercises after | Conceptual understanding only |
+
+**When to use which:**
+- **Immersive text**: Conceptual explanations (how probability works, why springs oscillate)
+- **Learning Center**: Skill practice (calculate probabilities, solve spring problems)
+
+Build both — immersive text for *understanding*, Learning Center for *applying*.

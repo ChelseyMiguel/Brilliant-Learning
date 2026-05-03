@@ -1,0 +1,75 @@
+To build a "Learning Center" that functions like Google’s Learn Your Way or Brilliant’s interactive narratives, you need to prompt for a Scrollytelling or Immersive Text architecture.
+
+In this setup, the text isn't just a static description; it acts as the "Controller" for a side-mounted simulation. As the user reads and scrolls, the simulation updates to reflect the concepts being taught.
+
+Here are the master prompts to build that specific experience.
+
+1. The "Immersive Text" Controller Prompt
+This prompt builds the skeleton of the Google-style experience where the text drives the visuals.
+
+Prompt: "Act as a Senior Creative Developer. I want to build an 'Immersive Lesson Plan' layout for Lumina Learning.
+
+The Architecture:
+
+Two-Column Layout: The left column is a scrollable text area (The Narrative). The right column is a fixed, sticky container (The Interactive Stage).
+
+Scroll-Sync Logic: Use the Intersection Observer API to track which paragraph is currently in view.
+
+Dynamic States: >    - When the user scrolls to the 'Introduction' paragraph, the Stage should show a static bag of 10 marbles.
+
+When they scroll to 'The Concept of Probability', the Stage should animate 3 marbles glowing to highlight the 'success' outcomes.
+
+When they reach 'Law of Large Numbers', the Stage should transform into a live 'Coin Flip' simulation.
+
+The Teaching Style: The text should be conversational and ask the user to 'Look over at the simulation—notice how the ratio changes as we add more data.'
+
+Technical Stack: React, Tailwind CSS for the layout, and Framer Motion for the Stage transitions."
+
+2. The "Active Exploration" Lab Prompt
+This builds the "Playground" where the user applies what the text just taught them before they get to the practice questions.
+
+Prompt: "Design a 'Teaching Lab' for a lesson on [Insert Topic, e.g., Logic Gates].
+
+The Narrative Component: Write 3 short paragraphs of teaching text.
+
+Para 1: Explain the 'AND' gate using a hallway light analogy.
+
+Para 2: Explain the 'OR' gate using a double-door analogy.
+
+The Interactive Stage: > - Create a 'Sandbox' where the user can drag an 'AND' block and an 'OR' block.
+
+As they drag the blocks, the text in Para 1 and 2 should highlight or 'pulse' to show the connection.
+
+Add a 'Test It' toggle that allows the user to flip switches and see the lightbulb turn on in real-time.
+
+Style: Use the Emerald and Slate theme. Ensure the transition between the 'Teaching' phase and the 'Sandbox' phase is seamless."
+
+3. The "State-Driven" Lesson Content Prompt
+If you want the AI to actually write the lesson content for you in a way that fits this interactive format:
+
+Prompt: "Act as an Instructional Designer for Brilliant.org. Write a lesson plan for [Topic: e.g., Compound Interest].
+
+Structure the content into 4 'Scrollytelling' beats:
+
+The Hook: A simple visual of $100 growing slowly.
+
+The Variable: Introduce a slider in the Stage. Tell the user in the text: 'Slide the interest rate to 10% and watch the curve steepen.'
+
+The 'Aha!' Moment: Introduce time. Show how the gap between linear and exponential growth explodes after 20 years.
+
+The Transition: A final paragraph that says: 'Now that you've seen the power of time, try to predict the outcome of this specific scenario...' followed by a Practice Card.
+
+Requirements: Use LaTeX for all formulas and provide the code for the interactive Stage components (Slider and Line Graph)."
+
+🛠️ Why this works for "Lumina Learning"
+Low Cognitive Load: By keeping the simulation on the screen while the user reads, they don't have to "imagine" the math—they see it.
+
+Agency: The user feels like they are "discovering" the law of nature by moving the sliders themselves.
+
+The Bridge: Because the Lab and the Practice Question use the same visual language (the same Marbles, the same Nodes), the student feels confident when they finally hit "Check Answer."
+
+Pro-Tip: Fixing the "Click" Issue
+If the animations still don't show or clicks don't work in this new layout, add this line to your prompt:
+"Ensure the sticky Stage has pointer-events-auto and that the scrolling text container does not overlap the interactive elements with an invisible margin or padding."
+
+Which lesson should we turn into an "Immersive Narrative" first? The Foundations of Probability (Marbles/Coins) or Logic & Critical Thinking?

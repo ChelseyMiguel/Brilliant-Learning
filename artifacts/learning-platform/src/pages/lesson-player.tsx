@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,11 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Zap, ArrowRight, RotateCcw, FlaskConical } from "lucide-react";
+import { X, Zap, ArrowRight, RotateCcw, FlaskConical, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { LESSON_ANIMATIONS } from "@/components/animations";
 import { LESSON_LABS } from "@/components/labs";
 import LearningCenter from "@/components/labs/LearningCenter";
+import LessonIntro from "@/components/labs/LessonIntro";
 import AnswerFeedback, { CheckAnswerButton } from "@/components/AnswerFeedback";
 
 type ChallengeState = "idle" | "answered" | "correct" | "incorrect";
@@ -44,7 +45,7 @@ export default function LessonPlayerPage() {
   const [feedback, setFeedback] = useState<{ correct: boolean; explanation: string; hint?: string | null; xpEarned: number } | null>(null);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [lessonComplete, setLessonComplete] = useState(false);
-  const [showingLab, setShowingLab] = useState(true);
+  const [showingPrePhase, setShowingPrePhase] = useState(true);
 
   const { data: lesson, isLoading } = useGetLesson(id, {
     query: { enabled: !!id, queryKey: getGetLessonQueryKey(id) },
@@ -52,6 +53,62 @@ export default function LessonPlayerPage() {
   const { data: lessonProgress } = useGetLessonProgress(id, {
     query: { enabled: !!id, queryKey: getGetLessonProgressQueryKey(id) },
   });
+
+  const challenges = lesson?.challenges ?? [];
+  const currentChallenge = challenges[currentIndex];
+  const options = (currentChallenge?.options as ChallengeOption[] | null) ?? null;
+  const progressPct = challenges.length > 0 ? ((currentIndex) / challenges.length) * 100 : 0;
+
+  const AnimationComponent = LESSON_ANIMATIONS[id] ?? null;
+  const lab = LESSON_LABS[id] ?? null;
+
+  const getAnswer = (): string => {
+    if (!currentChallenge) return "";
+    if (currentChallenge.type === "multiple_choice") return selectedOption ?? "";
+    if (currentChallenge.type === "true_false") return selectedOption ?? "";
+    return numericAnswer;
+  };
+
+  const canCheck = () => {
+    if (!currentChallenge) return false;
+    if (currentChallenge.type === "multiple_choice" || currentChallenge.type === "true_false") return !!selectedOption;
+    return numericAnswer.trim().length > 0;
+  };
+
+  // Client-side answer evaluation — used as fallback when API returns 401
+  const evaluateLocally = useCallback(() => {
+    if (!currentChallenge) return;
+    const answer = getAnswer();
+    let correct = false;
+
+    if (currentChallenge.type === "multiple_choice" && options) {
+      const correctOpt = options.find(o => o.isCorrect);
+      correct = correctOpt?.id === answer;
+    } else if (currentChallenge.type === "true_false") {
+      correct = answer === String(currentChallenge.correctAnswer);
+    } else {
+      correct = answer.trim().toLowerCase() === String(currentChallenge.correctAnswer ?? "").trim().toLowerCase();
+    }
+
+    const explanation = (currentChallenge as any).explanation ?? (
+      correct ? "Well done!" : `The correct answer is: ${currentChallenge.correctAnswer}`
+    );
+    const hint = (currentChallenge as any).hint ?? null;
+
+    setFeedback({
+      correct,
+      explanation: correct
+        ? `${explanation} (Sign in to save XP)`
+        : `${explanation}`,
+      hint,
+      xpEarned: 0,
+    });
+    setChallengeState(correct ? "correct" : "incorrect");
+  }, [currentChallenge, options, selectedOption, numericAnswer]);
+
+  // Keep a ref so onError callback always sees the latest evaluateLocally
+  const evaluateLocallyRef = useRef(evaluateLocally);
+  useEffect(() => { evaluateLocallyRef.current = evaluateLocally; }, [evaluateLocally]);
 
   const completeChallenge = useCompleteChallenge({
     mutation: {
@@ -69,30 +126,10 @@ export default function LessonPlayerPage() {
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         }
       },
+      // Fallback: evaluate locally when unauthenticated (401) or server unreachable
+      onError: () => evaluateLocallyRef.current(),
     },
   });
-
-  const challenges = lesson?.challenges ?? [];
-  const currentChallenge = challenges[currentIndex];
-  const options = (currentChallenge?.options as ChallengeOption[] | null) ?? null;
-  const progressPct = challenges.length > 0 ? ((currentIndex) / challenges.length) * 100 : 0;
-
-  const AnimationComponent = LESSON_ANIMATIONS[id] ?? null;
-  const lab = LESSON_LABS[id] ?? null;
-  const inLab = lab !== null && showingLab;
-
-  const getAnswer = (): string => {
-    if (!currentChallenge) return "";
-    if (currentChallenge.type === "multiple_choice") return selectedOption ?? "";
-    if (currentChallenge.type === "true_false") return selectedOption ?? "";
-    return numericAnswer;
-  };
-
-  const canCheck = () => {
-    if (!currentChallenge) return false;
-    if (currentChallenge.type === "multiple_choice" || currentChallenge.type === "true_false") return !!selectedOption;
-    return numericAnswer.trim().length > 0;
-  };
 
   const handleCheck = () => {
     if (!currentChallenge || !canCheck()) return;
@@ -150,18 +187,32 @@ export default function LessonPlayerPage() {
     );
   }
 
-  // Learning Center — shown before practice if a lab exists for this lesson
-  if (inLab) {
+  // ─── Pre-practice phase — shown before ANY lesson's challenges ───────────
+  if (showingPrePhase) {
+    if (lab) {
+      return (
+        <LearningCenter
+          lab={lab}
+          lessonTitle={lesson.title}
+          onStartPractice={() => setShowingPrePhase(false)}
+        />
+      );
+    }
     return (
-      <LearningCenter
-        lab={lab}
-        lessonTitle={lesson.title}
-        onStartPractice={() => setShowingLab(false)}
+      <LessonIntro
+        lesson={{
+          id: lesson.id,
+          title: lesson.title,
+          description: lesson.description,
+          category: (lesson as any).category ?? null,
+        }}
+        AnimationComponent={AnimationComponent}
+        onStartPractice={() => setShowingPrePhase(false)}
       />
     );
   }
 
-  // Lesson completion screen
+  // ─── Lesson completion screen ─────────────────────────────────────────────
   if (lessonComplete) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
@@ -211,6 +262,7 @@ export default function LessonPlayerPage() {
     );
   }
 
+  // ─── Challenge player ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
@@ -223,17 +275,15 @@ export default function LessonPlayerPage() {
         <div className="flex-1">
           <Progress value={progressPct} className="h-2" data-testid="lesson-progress-bar" />
         </div>
-        {/* Return to lab button if this lesson has a lab */}
-        {lab && (
-          <button
-            onClick={() => setShowingLab(true)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/5"
-            title="Return to Learning Center"
-          >
-            <FlaskConical className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Lab</span>
-          </button>
-        )}
+        {/* Return to pre-phase button */}
+        <button
+          onClick={() => setShowingPrePhase(true)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/5"
+          title={lab ? "Return to Learning Center" : "Return to warm-up"}
+        >
+          <FlaskConical className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{lab ? "Lab" : "Warm up"}</span>
+        </button>
         <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
           <Zap className="w-4 h-4" />
           <span data-testid="xp-counter">{totalXpEarned}</span>
@@ -245,8 +295,8 @@ export default function LessonPlayerPage() {
 
       {/* Main layout: animation sidebar + challenge */}
       <div className="flex-1 flex">
-        {/* Animation panel (desktop) */}
-        {AnimationComponent && (
+        {/* Animation panel (desktop sidebar — only for lessons with animations but no lab) */}
+        {AnimationComponent && !lab && (
           <div className="hidden lg:flex flex-col w-[380px] border-r border-border bg-muted/20 p-6 overflow-y-auto">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
               Interactive Simulation
@@ -266,7 +316,7 @@ export default function LessonPlayerPage() {
         <div className="flex-1 flex items-center justify-center px-6 py-10 overflow-y-auto">
           <div className="w-full max-w-2xl">
             {/* Mobile animation (shown above challenge on small screens) */}
-            {AnimationComponent && (
+            {AnimationComponent && !lab && (
               <div className="lg:hidden mb-6">
                 <Suspense fallback={<Skeleton className="h-52 rounded-2xl" />}>
                   <AnimationComponent />
@@ -380,7 +430,7 @@ export default function LessonPlayerPage() {
                       {feedback && <AnswerFeedback feedback={feedback} />}
                     </AnimatePresence>
 
-                    {/* Action buttons — CheckAnswerButton stays mounted so animations play */}
+                    {/* Action buttons */}
                     <div className="mt-8 flex gap-3">
                       <CheckAnswerButton
                         challengeState={challengeState}

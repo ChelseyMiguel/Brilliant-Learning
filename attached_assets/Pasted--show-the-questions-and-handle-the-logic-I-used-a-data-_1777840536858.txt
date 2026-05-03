@@ -1,0 +1,52 @@
+ show the questions and handle the logic, I used a data-driven architecture. This means the questions aren't hardcoded into the UI; instead, they are stored in a structured data file (content.ts) and rendered dynamically by a smart component.
+Here is a breakdown of how the coding works:
+1. The Data Schema (types.ts)
+First, I defined what a "Card" (a question) looks like using TypeScript. This ensures every question has a question string, options, and a correct answer.
+code
+TypeScript
+export interface Card {
+  id: string;
+  type: 'multiple-choice' | 'numeric' | 'drag-drop';
+  question: string;
+  options?: string[]; // For multiple choice
+  correctAnswer: any;
+  hint?: string;
+  explanation: string;
+  deepDive?: string; // Extraordinary detail for the "Aha!" moment
+}
+2. The Content Library (content.ts)
+All the actual questions are stored in a central library. This makes it easy to add new lessons without touching the UI code. For example, the Probability question looks like this:
+code
+TypeScript
+{
+  id: 'mb-1',
+  type: 'multiple-choice',
+  question: "If you have 10 Emerald and 10 Slate marbles...",
+  options: ['1/2 (50%)', '9/19 (47%)', '2/3 (66%)'],
+  correctAnswer: '1/2 (50%)',
+  explanation: "This is the essence of Independent Events...",
+}
+3. The Logic Engine (InteractionCard.tsx)
+This is where the magic happens. This component takes a Card object and decides how to show it. It handles:
+Selection State: Using React useState to track which button the user clicked.
+Submission Logic: Comparing the selectedOption to the correctAnswer.
+Feedback Animations: Using Framer Motion to "shake" the button on a wrong answer and "pop" it with an Emerald glow on success.
+code
+Tsx
+const handleSubmit = () => {
+  const isCorrect = selectedOption === card.correctAnswer;
+  setIsCorrect(isCorrect);
+  setIsSubmitted(true);
+
+  if (isCorrect) {
+    // Fire success animations/sounds
+    onCorrect();
+  } else {
+    // Trigger "Shake" animation via Framer Motion
+  }
+};
+4. Interactive Feedback
+To get that "Brilliant" feel, the component doesn't just say "Wrong." It uses the data we stored:
+Hints: If they get it wrong, a "Lightbulb" icon appears using the card.hint.
+Deep Dives: If they get it right, a "Deep Dive" panel unfolds with LaTeX mathematical notation (using the Math.tsx component I built) to explain the theory.
+By separating the Question Data from the UI Logic, the app stays fast, organized, and infinitely expandable! Would you like to see how I coded a specific part, like the LaTeX math rendering or the button animations?

@@ -1,0 +1,75 @@
+To get a Learning Center that actually works—where buttons respond and simulations run like the Google or Brilliant examples—you need a prompt that focuses on State Management and Interaction Logic.
+
+If your previous versions weren't working, it’s likely because the code was "hollow" (design with no brain). Use these three specific prompt recipes to build a functional, interactive simulation.
+
+1. The "Master Engine" Prompt (Fixes the "Not Working" issue)
+This is the most important prompt. It creates the "Brain" that switches between your Sandbox and your Practice questions while ensuring clicks are registered.
+
+Prompt: "Act as a Senior React Developer. I need a functional 'Learning Engine' component for Lumina Learning.
+
+The Core Logic:
+
+Create a view state that toggles between 'LAB' and 'PRACTICE'.
+
+Create a simulationData state that stores results from the lab (e.g., number of coin flips).
+
+Write a handleCheckAnswer function that:
+
+Checks if selectedOption matches correctAnswer.
+
+Triggers a Framer Motion 'pop' animation on success.
+
+Triggers a 'shake' animation and reveals an 'Amber Hint' if the answer is a common misconception.
+
+The Component Structure:
+
+Wrap everything in a div with relative z-10 to ensure no background layers block the mouse clicks.
+
+Include a 'Compass' button in the footer that sets view to 'LAB'.
+
+Include a 'Start Practice' button in the Lab that sets view to 'PRACTICE' and passes the lab results into the question context.
+
+Technical Check: Ensure all buttons have onClick handlers and use console.log inside them so I can verify they are firing in the browser console."
+
+2. The "Probability Playground" Prompt (Google-style Simulation)
+Use this to build the actual "Head and Tails" simulation you mentioned.
+
+Prompt: "Design an interactive 'Coin Flip Lab' using React and Framer Motion.
+
+Interaction Features:
+
+Single Flip: An SVG coin that performs a 3D Y-axis rotation when clicked.
+
+Mass Flip (The Simulation): A button that 'Flips 100x' and instantly calculates results, then animates a progress bar.
+
+Live Data: A slate-50 panel showing a real-time Head/Tail ratio.
+
+Visualizing the Law of Large Numbers:
+
+Include a dynamic SVG line graph (Sparkline) that plots the ratio of Heads over time. The line should stabilize toward the 50% mark as more flips are added.
+
+The 'Aha!' Moment: If a user gets a streak of 5 Heads, display a popup: 'A streak of 5! Does this make Tails more likely? (Spoiler: The coin has no memory).'
+
+Style: Use Emerald-600 for the 'Success' path and Slate-900 for the interface. Ensure the animation feels 'snappy' and tactile."
+
+3. The "Brilliant Style" Animation State Prompt
+This makes your interactive elements feel "alive" using the logic Brilliant uses in their Rive animations.
+
+Prompt: "Create a 'Tactile Interaction' component for a physics/logic question.
+
+The Animation States:
+
+Idle: The object (e.g., a marble or a logic gate) has a subtle 'breathing' scale animation.
+
+Hover: The object glows with an Emerald-400 outer shadow.
+
+Active (Drag/Click): Use framer-motion's whileTap={{ scale: 0.95 }} to make the element feel like a physical button.
+
+Check Sequence: When 'Check' is clicked, animate the 'correct' components by making them pulse emerald, and the 'incorrect' ones by turning them slate-300 and lowering their opacity.
+
+The Logic: Return the code as a modular React component that takes isCorrect as a prop and triggers these visual states automatically."
+
+💡 Troubleshooting Tip: Why your buttons "don't work"
+When prompting or coding, if your clicks aren't registering, add this to your prompt:
+
+"Ensure that no absolute or fixed positioned elements are overlapping the interaction area. Use pointer-events-none on background decorative SVGs and pointer-events-auto on all buttons and interactive nodes."

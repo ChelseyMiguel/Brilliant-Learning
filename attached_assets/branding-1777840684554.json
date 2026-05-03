@@ -1,0 +1,134 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "coFoBrilliantFont",
+      "role": "unknown"
+    },
+    {
+      "family": "coFoRobertFont",
+      "role": "unknown"
+    }
+  ],
+  "colors": {
+    "primary": "#29CC57",
+    "secondary": "#C7D3FF",
+    "accent": "#29CC57",
+    "background": "#FFFFFF",
+    "textPrimary": "#383838",
+    "link": "#FFC439"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "coFoBrilliantFont",
+      "heading": "coFoBrilliantFont"
+    },
+    "fontStacks": {
+      "heading": [
+        "coFoBrilliantFont",
+        "Arial",
+        "sans-serif"
+      ],
+      "body": [
+        "coFoBrilliantFont",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "coFoBrilliantFont",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "36px",
+      "h2": "48px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "38px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#29CC57",
+      "textColor": "#FFFFFF",
+      "borderRadius": "54px",
+      "borderRadiusCorners": {
+        "topLeft": "54px",
+        "topRight": "54px",
+        "bottomRight": "54px",
+        "bottomLeft": "54px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "transparent",
+      "textColor": "#000000",
+      "borderColor": "#E6E6E6",
+      "borderRadius": "60px",
+      "borderRadiusCorners": {
+        "topLeft": "60px",
+        "topRight": "60px",
+        "bottomRight": "60px",
+        "bottomLeft": "60px"
+      },
+      "shadow": "rgba(0, 0, 0, 0.1) 0px 4px 0px 0px"
+    }
+  },
+  "images": {
+    "favicon": "https://brilliant.org/favicon.ico",
+    "ogImage": "https://brilliant.org/images/opengraph/learn-interactively.png",
+    "logoHref": "File saved at: attached_assets/logoHref.html"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 1,
+    "reasoning": "Selected #1 because it is located in the header, is visible, and links to the homepage, making it the primary brand logo.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Get started",
+      "reasoning": "Button #0 with text 'Get started' uses the vibrant brand color #29CC57, making it the most prominent call-to-action on the page."
+    },
+    "secondary": {
+      "index": 4,
+      "text": "Learn more",
+      "reasoning": "Button #4 with text 'Learn more' has a transparent background, making it a suitable secondary action that contrasts with the primary button's vibrant color."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "high",
+    "targetAudience": "students and lifelong learners"
+  },
+  "designSystem": {
+    "framework": "chakra",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 1,
+        "selectedLogoReasoning": "Selected #1 because it is located in the header, is visible, and links to the homepage, making it the primary brand logo.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
