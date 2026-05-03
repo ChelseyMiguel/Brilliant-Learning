@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, CheckCircle2, XCircle, Zap, ArrowRight, RotateCcw, Brain } from "lucide-react";
+import { X, CheckCircle2, XCircle, Zap, ArrowRight, RotateCcw, FlaskConical } from "lucide-react";
 import { Link } from "wouter";
 import { LESSON_ANIMATIONS } from "@/components/animations";
+import { LESSON_LABS } from "@/components/labs";
+import LearningCenter from "@/components/labs/LearningCenter";
 
 type ChallengeState = "idle" | "answered" | "correct" | "incorrect";
 
@@ -41,6 +43,7 @@ export default function LessonPlayerPage() {
   const [feedback, setFeedback] = useState<{ correct: boolean; explanation: string; hint?: string | null; xpEarned: number } | null>(null);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [lessonComplete, setLessonComplete] = useState(false);
+  const [showingLab, setShowingLab] = useState(true);
 
   const { data: lesson, isLoading } = useGetLesson(id, {
     query: { enabled: !!id, queryKey: getGetLessonQueryKey(id) },
@@ -74,6 +77,8 @@ export default function LessonPlayerPage() {
   const progressPct = challenges.length > 0 ? ((currentIndex) / challenges.length) * 100 : 0;
 
   const AnimationComponent = LESSON_ANIMATIONS[id] ?? null;
+  const lab = LESSON_LABS[id] ?? null;
+  const inLab = lab !== null && showingLab;
 
   const getAnswer = (): string => {
     if (!currentChallenge) return "";
@@ -144,6 +149,17 @@ export default function LessonPlayerPage() {
     );
   }
 
+  // Learning Center — shown before practice if a lab exists for this lesson
+  if (inLab) {
+    return (
+      <LearningCenter
+        lab={lab}
+        lessonTitle={lesson.title}
+        onStartPractice={() => setShowingLab(false)}
+      />
+    );
+  }
+
   // Lesson completion screen
   if (lessonComplete) {
     return (
@@ -206,6 +222,17 @@ export default function LessonPlayerPage() {
         <div className="flex-1">
           <Progress value={progressPct} className="h-2" data-testid="lesson-progress-bar" />
         </div>
+        {/* Return to lab button if this lesson has a lab */}
+        {lab && (
+          <button
+            onClick={() => setShowingLab(true)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/5"
+            title="Return to Learning Center"
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Lab</span>
+          </button>
+        )}
         <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
           <Zap className="w-4 h-4" />
           <span data-testid="xp-counter">{totalXpEarned}</span>
@@ -217,7 +244,7 @@ export default function LessonPlayerPage() {
 
       {/* Main layout: animation sidebar + challenge */}
       <div className="flex-1 flex">
-        {/* Animation panel */}
+        {/* Animation panel (desktop) */}
         {AnimationComponent && (
           <div className="hidden lg:flex flex-col w-[380px] border-r border-border bg-muted/20 p-6 overflow-y-auto">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">

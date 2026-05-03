@@ -112,10 +112,42 @@ Animations are lazy-loaded and shown in a sidebar panel in the lesson player (de
 - `lesson-player.tsx` — interactive challenge player; shows animation panel for mapped lessons
 - `profile.tsx` — user stats, course list, sign out
 
+## Learning Center (Diagramatics-Powered Labs)
+
+A "discovery before practice" exploration phase that appears before the challenge player for lessons that have an associated lab. Built on the user's own [Diagramatics](https://github.com/ray-pH/diagramatics) library (v1.8.7, TypeScript, MIT).
+
+### Architecture
+
+- `labs/DiagramaticsInteractive.tsx` — React wrapper for Diagramatics `Interactive` class; manages SVG + controls div refs, async import, lifecycle cleanup
+- `labs/CoinFlipLab.tsx` — Coin flip + running proportion line chart (Law of Large Numbers). Slider: 1–200 flips
+- `labs/AreaModelLab.tsx` — 10×10 probability grid; two sliders control P(A) and P(B); shows P(A∩B) region
+- `labs/SpringLab.tsx` — Spring-mass diagram using `mechanics.spring()`; sliders for k and displacement; shows PE/KE bars
+- `labs/NeuralNetLab.tsx` — 3-layer network with signal propagation; sliders for weight and threshold
+- `labs/LearningCenter.tsx` — Full-screen exploration UI: lab on left, guided discovery steps panel on right, "Start Practice" CTA
+- `labs/index.ts` — `LESSON_LABS` registry mapping lesson IDs → lab component + guided discovery steps
+
+### Lab ↔ Lesson Mapping
+
+| Lesson ID | Lab | Discovery Theme |
+|-----------|-----|----------------|
+| 2 | CoinFlipLab | Law of Large Numbers |
+| 14 | AreaModelLab | Probability as area |
+| 17 | NeuralNetLab | Weights and activation |
+| 18 | NeuralNetLab | Signal propagation |
+| 21 | SpringLab | Hooke's Law and energy |
+
+### Lesson Player Flow
+
+1. Lesson has a lab → `LearningCenter` is shown first (full screen)
+2. User works through 3 guided discovery steps, then clicks "Start Practice"
+3. Practice challenges begin; a flask icon in the top bar lets them return to the lab at any time
+4. Lessons without a lab → skip straight to challenges (unchanged behaviour)
+
 ## Frontend Components
 
 - `CourseIllustration.tsx` — category-based SVG course card illustrations (Math/Logic/CS/Physics/Data/Neural)
 - `animations/` — interactive SVG simulation components (lazy-loaded per lesson)
+- `labs/` — Diagramatics-powered Learning Center components (lazy-loaded per lesson)
 
 ## Auth (Clerk)
 

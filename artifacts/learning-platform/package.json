@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/react": "^6.5.0"
+    "@clerk/react": "^6.5.0",
+    "diagramatics": "^1.8.7"
   }
 }

@@ -1,0 +1,125 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Google Sans",
+      "role": "heading"
+    },
+    {
+      "family": "Roboto",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#FF9064",
+    "secondary": "#FFD3C1",
+    "accent": "#FF9064",
+    "background": "#FFFFFF",
+    "textPrimary": "#000000",
+    "link": "#FFF4F0"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Roboto",
+      "heading": "Google Sans"
+    },
+    "fontStacks": {
+      "heading": [
+        "Google Sans"
+      ],
+      "body": [
+        "Google Sans",
+        "Roboto",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Google Sans",
+        "Roboto",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "60px",
+      "h2": "27px",
+      "body": "22px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "24px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#FF9064",
+      "textColor": "#000000",
+      "borderRadius": "36px",
+      "borderRadiusCorners": {
+        "topLeft": "36px",
+        "topRight": "36px",
+        "bottomRight": "36px",
+        "bottomLeft": "36px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#FFD3C1",
+      "textColor": "#000000",
+      "borderColor": "#FF9064",
+      "borderRadius": "36px",
+      "borderRadiusCorners": {
+        "topLeft": "36px",
+        "topRight": "36px",
+        "bottomRight": "36px",
+        "bottomLeft": "36px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": "https://learnyourway.withgoogle.com/static/favicon.svg",
+    "ogImage": null
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 2,
+      "text": "forms_add_on Waitlist: Upload your PDF",
+      "reasoning": "Button #2 has a vibrant brand color (#FF9064) and action-oriented text ('Waitlist: Upload your PDF'), making it the primary CTA."
+    },
+    "secondary": {
+      "index": 0,
+      "text": "Try it now",
+      "reasoning": "Button #0 has a different background color (#FFD3C1) and also features action-oriented text ('Try it now'), making it a suitable secondary CTA."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "students and educators"
+  },
+  "designSystem": {
+    "framework": "material",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": false,
+      "llmSucceeded": false,
+      "finalSource": "none"
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

@@ -1,0 +1,49 @@
+The progress you’ve made on the **Lumina Learning** UI is fantastic. The "Explore Courses" dashboard looks incredibly clean, and the interaction card for the probability question captures that minimalist, "problem-first" aesthetic perfectly.
+
+To take this from a static multiple-choice question to an **Active Learning** experience, we can prompt for the **Amber State** and the **Visual Sandbox** specifically for this marble problem.
+
+---
+
+## 1. The "Amber State" Logic for Marbles
+In your screenshot, the question asks for the probability of a red marble. A common mistake (the **Amber State**) is for students to provide the **Ratio** ($3:7$) instead of the **Probability** ($3/10$).
+
+> **Prompt:** "I am building an Interaction Card for a 'Marbles in a Bag' probability question. 
+> * **Correct Answer:** $3/10$ (Trigger Emerald success state).
+> * **Common Misconception (Amber):** If the user selects $3/7$, trigger the Amber state. 
+> * **Amber Hint:** 'You’ve compared red marbles to blue marbles (a ratio). Remember, probability is the number of successful outcomes divided by the **total** number of marbles in the bag.'
+> * **Distractor (Red):** If the user selects $7/10$, provide a hint: 'That is the probability of picking a **blue** marble. Check the question again!'"
+
+---
+
+## 2. The "Marble Sandbox" Learning Center
+Before the user sees the card in your screenshot, let's give them a **Learning Center** where they can build the bag themselves.
+
+> **Prompt:** "Create a 'Bag Builder' Learning Center for Lumina Learning.
+> * **Interface:** A `slate-50` workspace with a central 'Bag' SVG and two buttons: '+ Red' and '+ Blue.'
+> * **Interaction:** As the user adds marbles, they physically drop into the bag with `framer-motion` physics.
+> * **Live Analytics:** Below the bag, show a real-time 'Probability Meter' that updates a fraction as the total count changes.
+> * **Discovery Goal:** Ask the user to: 'Add enough marbles so that your chance of picking a Red is exactly 50%.' 
+> * **Bridge:** Once they hit the goal, the 'Start Practice' button appears, leading to the question in my screenshot."
+
+---
+
+## 3. Visual Polish: The "Ghost Marble" Feedback
+To make the "Check Answer" moment more satisfying, we can animate the result.
+
+> **Prompt:** "Design a 'Feedback Animation' for the marble question.
+> * **Action:** When the user clicks 'Check Answer,' an SVG of the 'Bag' appears. 
+> * **Success:** 3 Red marbles glow brightly in `emerald-500` while the others fade out.
+> * **Failure:** If they pick $3/7$, highlight all 7 blue marbles in `amber-400` to visually show that they forgot to include them in the total count.
+> * **LaTeX Integration:** Simultaneously render the equation: $P(\text{Red}) = \frac{3}{3+7} = \frac{3}{10}$."
+
+---
+
+## 🛠️ Dashboard "Card" Prompt Refinement
+Your **Course Cards** look great, but we can make the "XP" and "Level" badges feel more integrated into your **Natural Tones** theme.
+
+> **Prompt:** "Refine the CSS for my Course Dashboard cards:
+> * **Hover Effect:** When hovering over 'Foundations of Probability,' the background should transition from white to a very subtle `slate-50`, and the 'H' icon should pulse.
+> * **Badge Styling:** Change the 'Beginner' and 'Intermediate' badges to use a `capsule` shape with a 1px border. 
+> * **Progress Bar:** Add a thin, 2px emerald line at the bottom of the card that represents the user's current completion percentage for that specific course."
+
+The **"Foundations of Probability"** course is the perfect home for this marble lesson. Would you like to wire up the **Sorting Logic** lab next to match the **"Computer Science Fundamentals"** card shown in your dashboard?

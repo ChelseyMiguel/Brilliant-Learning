@@ -230,6 +230,9 @@ importers:
       '@clerk/react':
         specifier: ^6.5.0
         version: 6.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      diagramatics:
+        specifier: ^1.8.7
+        version: 1.8.7
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -1757,6 +1760,9 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@velipso/polybool@1.1.1':
+    resolution: {integrity: sha512-HlWrm/wloLkUDHPQ1AgUdXysKL3y+rqV94udU5CVTtEPci5v6WjEfozNJTOOSwCsz50ySIxJK4gABqfbx1sD7A==}
+
   '@vitejs/plugin-react@5.1.4':
     resolution: {integrity: sha512-VIcFLdRi/VYRU8OL/puL7QXMYafHmqOnwTZY50U1JPlCNj30PxCMx65c494b1K9be9hX83KVt0+gTEwTWLqToA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1999,6 +2005,9 @@ packages:
 
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
+
+  diagramatics@1.8.7:
+    resolution: {integrity: sha512-QLa/JlHMD3pQIQz7CP9BCadXq0ikOiiZPW/b/HMRPwRFaPqsFE/BhI6LBzIW82qAdEe7bNiINqvYLafwXfTB7g==}
 
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
@@ -4535,6 +4544,10 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
+  '@velipso/polybool@1.1.1':
+    dependencies:
+      tslib: 2.8.1
+
   '@vitejs/plugin-react@5.1.4(vite@7.3.2(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@babel/core': 7.29.0
@@ -4752,6 +4765,10 @@ snapshots:
   detect-libc@2.1.2: {}
 
   detect-node-es@1.1.0: {}
+
+  diagramatics@1.8.7:
+    dependencies:
+      '@velipso/polybool': 1.1.1
 
   dom-helpers@5.2.1:
     dependencies:
