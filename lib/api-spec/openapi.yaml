@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Learning Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: courses
+    description: Course operations
+  - name: lessons
+    description: Lesson operations
+  - name: progress
+    description: User progress operations
+  - name: user
+    description: User profile operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,181 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List all courses
+      responses:
+        "200":
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a course with its lessons
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Course detail with lessons
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetail"
+        "404":
+          description: Not found
+
+  /courses/{courseId}/lessons:
+    get:
+      operationId: listLessons
+      tags: [lessons]
+      summary: List lessons for a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+
+  /lessons/{lessonId}:
+    get:
+      operationId: getLesson
+      tags: [lessons]
+      summary: Get a lesson with its challenges
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lesson with challenges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
+        "404":
+          description: Not found
+
+  /progress/me:
+    get:
+      operationId: getMyProgress
+      tags: [progress]
+      summary: Get current user progress summary
+      responses:
+        "200":
+          description: User progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProgress"
+
+  /progress/complete-challenge:
+    post:
+      operationId: completeChallenge
+      tags: [progress]
+      summary: Mark a challenge as completed and award XP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteChallengeBody"
+      responses:
+        "200":
+          description: Updated progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeResult"
+
+  /progress/lesson-progress/{lessonId}:
+    get:
+      operationId: getLessonProgress
+      tags: [progress]
+      summary: Get user's progress within a specific lesson
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lesson progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonProgress"
+
+  /progress/course-progress/{courseId}:
+    get:
+      operationId: getCourseProgress
+      tags: [progress]
+      summary: Get user's progress in a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Course progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseProgress"
+
+  /user/profile:
+    get:
+      operationId: getUserProfile
+      tags: [user]
+      summary: Get or create user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [user]
+      summary: Get dashboard summary with streak, XP, and recommended course
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +216,344 @@ components:
       required:
         - status
 
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        lessonCount:
+          type: integer
+        totalXp:
+          type: integer
+        iconColor:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - description
+        - category
+        - difficulty
+        - lessonCount
+        - totalXp
+        - iconColor
+        - createdAt
+
+    CourseDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        difficulty:
+          type: string
+        lessonCount:
+          type: integer
+        totalXp:
+          type: integer
+        iconColor:
+          type: string
+        createdAt:
+          type: string
+        lessons:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lesson"
+      required:
+        - id
+        - title
+        - description
+        - category
+        - difficulty
+        - lessonCount
+        - totalXp
+        - iconColor
+        - createdAt
+        - lessons
+
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+        xpReward:
+          type: integer
+        challengeCount:
+          type: integer
+      required:
+        - id
+        - courseId
+        - title
+        - description
+        - order
+        - xpReward
+        - challengeCount
+
+    LessonDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+        xpReward:
+          type: integer
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Challenge"
+      required:
+        - id
+        - courseId
+        - title
+        - description
+        - order
+        - xpReward
+        - challenges
+
+    Challenge:
+      type: object
+      properties:
+        id:
+          type: integer
+        lessonId:
+          type: integer
+        order:
+          type: integer
+        type:
+          type: string
+          enum: [multiple_choice, numeric_input, true_false]
+        question:
+          type: string
+        explanation:
+          type: string
+        xpReward:
+          type: integer
+        options:
+          type: ["array", "null"]
+          items:
+            $ref: "#/components/schemas/ChallengeOption"
+        correctAnswer:
+          type: string
+        hint:
+          type: ["string", "null"]
+      required:
+        - id
+        - lessonId
+        - order
+        - type
+        - question
+        - explanation
+        - xpReward
+        - correctAnswer
+
+    ChallengeOption:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        isCorrect:
+          type: boolean
+      required:
+        - id
+        - text
+        - isCorrect
+
+    CompleteChallengeBody:
+      type: object
+      properties:
+        challengeId:
+          type: integer
+        lessonId:
+          type: integer
+        answer:
+          type: string
+        attemptNumber:
+          type: integer
+      required:
+        - challengeId
+        - lessonId
+        - answer
+        - attemptNumber
+
+    ChallengeResult:
+      type: object
+      properties:
+        correct:
+          type: boolean
+        xpEarned:
+          type: integer
+        totalXp:
+          type: integer
+        explanation:
+          type: string
+        hint:
+          type: ["string", "null"]
+        streakDays:
+          type: integer
+      required:
+        - correct
+        - xpEarned
+        - totalXp
+        - explanation
+        - streakDays
+
+    UserProgress:
+      type: object
+      properties:
+        userId:
+          type: string
+        totalXp:
+          type: integer
+        streakDays:
+          type: integer
+        lessonsCompleted:
+          type: integer
+        challengesCompleted:
+          type: integer
+        lastActiveDate:
+          type: ["string", "null"]
+      required:
+        - userId
+        - totalXp
+        - streakDays
+        - lessonsCompleted
+        - challengesCompleted
+
+    LessonProgress:
+      type: object
+      properties:
+        lessonId:
+          type: integer
+        completed:
+          type: boolean
+        completedChallenges:
+          type: array
+          items:
+            type: integer
+        xpEarned:
+          type: integer
+      required:
+        - lessonId
+        - completed
+        - completedChallenges
+        - xpEarned
+
+    CourseProgress:
+      type: object
+      properties:
+        courseId:
+          type: integer
+        completedLessons:
+          type: integer
+        totalLessons:
+          type: integer
+        xpEarned:
+          type: integer
+        percentComplete:
+          type: integer
+        currentLessonId:
+          type: ["integer", "null"]
+      required:
+        - courseId
+        - completedLessons
+        - totalLessons
+        - xpEarned
+        - percentComplete
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        clerkId:
+          type: string
+        displayName:
+          type: string
+        totalXp:
+          type: integer
+        streakDays:
+          type: integer
+        joinedAt:
+          type: string
+      required:
+        - id
+        - clerkId
+        - displayName
+        - totalXp
+        - streakDays
+        - joinedAt
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalXp:
+          type: integer
+        streakDays:
+          type: integer
+        lessonsCompleted:
+          type: integer
+        challengesCompleted:
+          type: integer
+        weeklyActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayActivity"
+        recommendedCourse:
+          $ref: "#/components/schemas/Course"
+        recentCourses:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseProgress"
+      required:
+        - totalXp
+        - streakDays
+        - lessonsCompleted
+        - challengesCompleted
+        - weeklyActivity
+        - recentCourses
+
+    DayActivity:
+      type: object
+      properties:
+        day:
+          type: string
+        active:
+          type: boolean
+        xpEarned:
+          type: integer
+      required:
+        - day
+        - active
+        - xpEarned
