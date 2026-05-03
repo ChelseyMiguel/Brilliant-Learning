@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Brain, Zap, BookOpen, ArrowRight, Flame, Trophy } from "lucide-react";
+import CourseIllustration from "@/components/CourseIllustration";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number | string; icon: any; color: string }) {
   return (
@@ -33,8 +34,6 @@ export default function DashboardPage() {
   const { user } = useUser();
   const { data: summary, isLoading } = useGetDashboardSummary();
   const { data: courses } = useListCourses();
-
-  const days = ["Su", "M", "Tu", "W", "Th", "F", "Sa"];
 
   if (isLoading) {
     return (
@@ -98,7 +97,7 @@ export default function DashboardPage() {
           <div className="bg-card border border-card-border rounded-2xl p-6">
             <h2 className="font-semibold text-base mb-5">Weekly Activity</h2>
             <div className="flex items-end justify-between gap-2" data-testid="weekly-activity">
-              {(summary?.weeklyActivity ?? days.map(d => ({ day: d, active: false, xpEarned: 0 }))).map((activity, i) => {
+              {(summary?.weeklyActivity ?? ["Su","M","Tu","W","Th","F","Sa"].map(d => ({ day: d, active: false, xpEarned: 0 }))).map((activity, i) => {
                 const maxXp = Math.max(...(summary?.weeklyActivity?.map(a => a.xpEarned) ?? [1]), 1);
                 const height = activity.xpEarned > 0 ? Math.max((activity.xpEarned / maxXp) * 80, 12) : 4;
                 return (
@@ -124,43 +123,40 @@ export default function DashboardPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-card border border-card-border rounded-2xl p-6 flex flex-col"
+              className="bg-card border border-card-border rounded-2xl overflow-hidden flex flex-col"
               data-testid="recommended-course"
             >
-              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Recommended for you</p>
-              <div className="flex items-start gap-4 flex-1">
-                <div
-                  className="w-12 h-12 rounded-xl flex-shrink-0"
-                  style={{ backgroundColor: summary.recommendedCourse.iconColor + "20" }}
-                >
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Brain className="w-6 h-6" style={{ color: summary.recommendedCourse.iconColor }} />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-base leading-tight" data-testid="recommended-course-title">
-                    {summary.recommendedCourse.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {summary.recommendedCourse.description}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-xs text-muted-foreground">{summary.recommendedCourse.lessonCount} lessons</span>
-                    <span className="text-xs font-medium text-primary">{summary.recommendedCourse.totalXp} XP</span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-center py-5 bg-muted/30">
+                <CourseIllustration
+                  category={summary.recommendedCourse.category}
+                  iconColor={summary.recommendedCourse.iconColor}
+                  size={80}
+                />
               </div>
-              <Link href={`/courses/${summary.recommendedCourse.id}`}>
-                <Button className="w-full mt-5 gap-2" data-testid="button-start-recommended">
-                  Start learning
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              <div className="p-5 flex-1 flex flex-col">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Recommended for you</p>
+                <h3 className="font-semibold text-base leading-tight mb-1" data-testid="recommended-course-title">
+                  {summary.recommendedCourse.title}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-1">
+                  {summary.recommendedCourse.description}
+                </p>
+                <div className="flex items-center gap-3 text-xs mb-4">
+                  <span className="text-muted-foreground">{summary.recommendedCourse.lessonCount} lessons</span>
+                  <span className="font-medium text-primary">{summary.recommendedCourse.totalXp} XP</span>
+                </div>
+                <Link href={`/courses/${summary.recommendedCourse.id}`}>
+                  <Button className="w-full gap-2" data-testid="button-start-recommended">
+                    Start learning
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             </motion.div>
           )}
         </div>
 
-        {/* All courses */}
+        {/* All courses grid */}
         <div>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-semibold tracking-tight">All Courses</h2>
@@ -170,36 +166,44 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4">
-            {(courses ?? []).slice(0, 4).map((course, i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {(courses ?? []).slice(0, 8).map((course, i) => (
               <motion.div
                 key={course.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
+                transition={{ delay: i * 0.06 }}
               >
                 <Link href={`/courses/${course.id}`}>
                   <div
-                    className="bg-card border border-card-border rounded-2xl p-5 hover:border-primary/30 transition-colors cursor-pointer group"
+                    className="bg-card border border-card-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group"
                     data-testid={`course-card-${course.id}`}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: course.iconColor + "20" }}>
-                        <Brain className="w-4 h-4" style={{ color: course.iconColor }} />
-                      </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        course.difficulty === "beginner" ? "bg-emerald-50 text-emerald-600" :
-                        course.difficulty === "intermediate" ? "bg-amber-50 text-amber-600" :
-                        "bg-rose-50 text-rose-600"
-                      }`}>
-                        {course.difficulty}
-                      </span>
+                    <div className="flex items-center justify-center py-5 bg-muted/30">
+                      <CourseIllustration
+                        category={course.category}
+                        iconColor={course.iconColor}
+                        size={72}
+                      />
                     </div>
-                    <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">{course.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
-                    <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                      <span>{course.lessonCount} lessons</span>
-                      <span className="text-primary font-medium">{course.totalXp} XP</span>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-muted-foreground font-medium">{course.category}</span>
+                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                          course.difficulty === "beginner" ? "bg-emerald-50 text-emerald-600" :
+                          course.difficulty === "intermediate" ? "bg-amber-50 text-amber-600" :
+                          "bg-rose-50 text-rose-600"
+                        }`}>
+                          {course.difficulty}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-1">
+                        {course.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{course.lessonCount} lessons</span>
+                        <span className="text-primary font-medium">{course.totalXp} XP</span>
+                      </div>
                     </div>
                   </div>
                 </Link>

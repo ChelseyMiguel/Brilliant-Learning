@@ -2,7 +2,7 @@
 
 ## Overview
 
-Luminary is a Brilliant.org-inspired interactive learning platform. Users sign up, browse courses, and complete interactive challenges (multiple choice, true/false, numeric input) to earn XP and build streaks.
+Luminary is a Brilliant.org-inspired interactive learning platform. Users sign up, browse courses, and complete interactive challenges (multiple choice, true/false, numeric input) to earn XP and build streaks. Courses feature SVG sequence animations alongside the challenge player.
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
@@ -54,6 +54,41 @@ lib/
 - `user_progress` — id, clerkId, lessonId, completed, xpEarned, completedAt
 - `challenge_attempts` — id, clerkId, challengeId, lessonId, correct, attemptNumber, xpEarned, createdAt
 
+## Courses (7 total, seeded in DB)
+
+1. **Foundations of Probability** (Math, beginner)
+2. **Logic & Critical Thinking** (Math, beginner)
+3. **Computer Science Fundamentals** (Computer Science, beginner)
+4. **Data Analysis Essentials** (Data Analysis, intermediate)
+5. **The Geometry of Chance** (Math, intermediate) — Area models, Monty Hall, Expected Value
+6. **Neural Networks from Scratch** (Computer Science, intermediate) — Neurons, Backprop, Layers
+7. **Physics of Motion** (Physics, beginner) — Forces, Springs, Energy Conservation
+
+## SVG Animation Components (artifacts/learning-platform/src/components/animations/)
+
+Each animation is a self-contained interactive React component using Framer Motion:
+
+- `CoinFlipAnimation.tsx` — flippable coin sequence with auto mode and convergence bar
+- `ProbabilityGridAnimation.tsx` — 10x10 grid with random point dropping, red hit tracking
+- `MontyHallAnimation.tsx` — full Monty Hall simulator with stay/switch win rate tracking
+- `NeuralNetAnimation.tsx` — 3-layer SVG neural net with clickable inputs and signal pulses
+- `SpringAnimation.tsx` — real-time spring-mass oscillator with k/mass sliders and energy bars
+
+### Animation ↔ Lesson Mapping (index.ts)
+
+| Lesson ID | Lesson Title | Animation |
+|-----------|-------------|-----------|
+| 2 | Gambler's Fallacy | CoinFlipAnimation |
+| 14 | Area Models of Probability | ProbabilityGridAnimation |
+| 15 | The Monty Hall Problem | MontyHallAnimation |
+| 17 | Neurons and Weights | NeuralNetAnimation |
+| 18 | The Learning Signal | NeuralNetAnimation |
+| 19 | Layers and Depth | NeuralNetAnimation |
+| 21 | Springs and Oscillation | SpringAnimation |
+| 22 | Energy Conservation | SpringAnimation |
+
+Animations are lazy-loaded and shown in a sidebar panel in the lesson player (desktop) or above the challenge (mobile).
+
 ## API Routes (all under /api)
 
 - `GET /api/healthz` — health check
@@ -71,11 +106,16 @@ lib/
 ## Frontend Pages (artifacts/learning-platform/src/pages/)
 
 - `landing.tsx` — public hero page for unauthenticated users
-- `dashboard.tsx` — home for logged-in users (stats, weekly activity, course list)
-- `courses.tsx` — browse all courses with search
+- `dashboard.tsx` — home for logged-in users (stats, weekly activity, course grid with SVG illustrations)
+- `courses.tsx` — browse all courses grouped by category, with search and SVG illustrations
 - `course-detail.tsx` — visual linear lesson path with progress nodes
-- `lesson-player.tsx` — interactive challenge player (one challenge at a time)
+- `lesson-player.tsx` — interactive challenge player; shows animation panel for mapped lessons
 - `profile.tsx` — user stats, course list, sign out
+
+## Frontend Components
+
+- `CourseIllustration.tsx` — category-based SVG course card illustrations (Math/Logic/CS/Physics/Data/Neural)
+- `animations/` — interactive SVG simulation components (lazy-loaded per lesson)
 
 ## Auth (Clerk)
 

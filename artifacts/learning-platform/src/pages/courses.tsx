@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, ArrowLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import CourseIllustration from "@/components/CourseIllustration";
 
 export default function CoursesPage() {
   const { data: courses, isLoading } = useListCourses();
@@ -69,7 +70,7 @@ export default function CoursesPage() {
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-2xl" />
+              <Skeleton key={i} className="h-64 rounded-2xl" />
             ))}
           </div>
         ) : (
@@ -90,33 +91,41 @@ export default function CoursesPage() {
                       >
                         <Link href={`/courses/${course.id}`}>
                           <div
-                            className="bg-card border border-card-border rounded-2xl p-6 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group h-full"
+                            className="bg-card border border-card-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
                             data-testid={`course-card-${course.id}`}
                           >
-                            <div className="flex items-center justify-between mb-4">
-                              <div
-                                className="w-11 h-11 rounded-xl flex items-center justify-center"
-                                style={{ backgroundColor: course.iconColor + "20" }}
-                              >
-                                <Brain className="w-5 h-5" style={{ color: course.iconColor }} />
-                              </div>
-                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                                course.difficulty === "beginner" ? "bg-emerald-50 text-emerald-700" :
-                                course.difficulty === "intermediate" ? "bg-amber-50 text-amber-700" :
-                                "bg-rose-50 text-rose-700"
-                              }`}>
-                                {course.difficulty}
-                              </span>
+                            {/* Illustration header */}
+                            <div className="flex items-center justify-center py-6 bg-muted/30">
+                              <CourseIllustration
+                                category={course.category}
+                                iconColor={course.iconColor}
+                                size={100}
+                              />
                             </div>
-                            <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors leading-snug">
-                              {course.title}
-                            </h3>
-                            <p className="text-sm text-muted-foreground line-clamp-3 mb-4 leading-relaxed">
-                              {course.description}
-                            </p>
-                            <div className="flex items-center gap-3 text-xs">
-                              <span className="text-muted-foreground">{course.lessonCount} lessons</span>
-                              <span className="text-primary font-semibold">{course.totalXp} XP</span>
+
+                            <div className="p-5">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                  {course.category}
+                                </span>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  course.difficulty === "beginner" ? "bg-emerald-50 text-emerald-700" :
+                                  course.difficulty === "intermediate" ? "bg-amber-50 text-amber-700" :
+                                  "bg-rose-50 text-rose-700"
+                                }`}>
+                                  {course.difficulty}
+                                </span>
+                              </div>
+                              <h3 className="font-semibold text-base mb-1.5 group-hover:text-primary transition-colors leading-snug">
+                                {course.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                                {course.description}
+                              </p>
+                              <div className="flex items-center gap-3 text-xs">
+                                <span className="text-muted-foreground">{course.lessonCount} lessons</span>
+                                <span className="text-primary font-semibold">{course.totalXp} XP</span>
+                              </div>
                             </div>
                           </div>
                         </Link>

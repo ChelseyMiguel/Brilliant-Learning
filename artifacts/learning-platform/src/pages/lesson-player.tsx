@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, CheckCircle2, XCircle, Zap, ArrowRight, RotateCcw, Brain } from "lucide-react";
 import { Link } from "wouter";
+import { LESSON_ANIMATIONS } from "@/components/animations";
 
 type ChallengeState = "idle" | "answered" | "correct" | "incorrect";
 
@@ -70,7 +71,9 @@ export default function LessonPlayerPage() {
   const challenges = lesson?.challenges ?? [];
   const currentChallenge = challenges[currentIndex];
   const options = (currentChallenge?.options as ChallengeOption[] | null) ?? null;
-  const progress = challenges.length > 0 ? ((currentIndex) / challenges.length) * 100 : 0;
+  const progressPct = challenges.length > 0 ? ((currentIndex) / challenges.length) * 100 : 0;
+
+  const AnimationComponent = LESSON_ANIMATIONS[id] ?? null;
 
   const getAnswer = (): string => {
     if (!currentChallenge) return "";
@@ -201,7 +204,7 @@ export default function LessonPlayerPage() {
           </button>
         </Link>
         <div className="flex-1">
-          <Progress value={progress} className="h-2" data-testid="lesson-progress-bar" />
+          <Progress value={progressPct} className="h-2" data-testid="lesson-progress-bar" />
         </div>
         <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
           <Zap className="w-4 h-4" />
@@ -212,193 +215,223 @@ export default function LessonPlayerPage() {
         </span>
       </div>
 
-      {/* Challenge area */}
-      <div className="flex-1 flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-2xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              transition={{ duration: 0.3 }}
-            >
-              {currentChallenge && (
-                <div>
-                  {/* Lesson title */}
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {lesson.title}
-                  </p>
+      {/* Main layout: animation sidebar + challenge */}
+      <div className="flex-1 flex">
+        {/* Animation panel */}
+        {AnimationComponent && (
+          <div className="hidden lg:flex flex-col w-[380px] border-r border-border bg-muted/20 p-6 overflow-y-auto">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              Interactive Simulation
+            </p>
+            <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+              <AnimationComponent />
+            </Suspense>
+            <div className="mt-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Use this simulation to explore the concept before answering. Experiment freely — there are no wrong moves here.
+              </p>
+            </div>
+          </div>
+        )}
 
-                  {/* Question */}
-                  <h2 className="text-2xl font-bold mb-8 leading-snug" data-testid="challenge-question">
-                    {currentChallenge.question}
-                  </h2>
+        {/* Challenge area */}
+        <div className="flex-1 flex items-center justify-center px-6 py-10 overflow-y-auto">
+          <div className="w-full max-w-2xl">
+            {/* Mobile animation (shown above challenge on small screens) */}
+            {AnimationComponent && (
+              <div className="lg:hidden mb-6">
+                <Suspense fallback={<Skeleton className="h-52 rounded-2xl" />}>
+                  <AnimationComponent />
+                </Suspense>
+              </div>
+            )}
 
-                  {/* Multiple choice */}
-                  {currentChallenge.type === "multiple_choice" && options && (
-                    <div className="space-y-3" data-testid="multiple-choice-options">
-                      {options.map((opt, i) => {
-                        const label = String.fromCharCode(65 + i);
-                        const isSelected = selectedOption === opt.id;
-                        const showResult = challengeState !== "idle";
-                        const isCorrectOpt = opt.isCorrect;
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.3 }}
+              >
+                {currentChallenge && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {lesson.title}
+                    </p>
 
-                        let optClass = "border-border hover:border-primary/50 cursor-pointer";
-                        if (showResult && isSelected && challengeState === "correct") optClass = "border-secondary bg-secondary/10";
-                        else if (showResult && isSelected && challengeState === "incorrect") optClass = "border-destructive bg-destructive/10";
-                        else if (showResult && isCorrectOpt) optClass = "border-secondary bg-secondary/10";
-                        else if (isSelected) optClass = "border-primary bg-primary/10";
+                    <h2 className="text-2xl font-bold mb-8 leading-snug" data-testid="challenge-question">
+                      {currentChallenge.question}
+                    </h2>
 
-                        return (
-                          <motion.button
-                            key={opt.id}
-                            whileHover={challengeState === "idle" ? { scale: 1.01 } : {}}
-                            whileTap={challengeState === "idle" ? { scale: 0.99 } : {}}
-                            onClick={() => challengeState === "idle" && setSelectedOption(opt.id)}
-                            className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-colors text-left ${optClass} ${challengeState !== "idle" ? "cursor-default" : ""}`}
-                            data-testid={`option-${opt.id}`}
-                          >
-                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                              {label}
-                            </span>
-                            <span className="font-medium">{opt.text}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  )}
+                    {/* Multiple choice */}
+                    {currentChallenge.type === "multiple_choice" && options && (
+                      <div className="space-y-3" data-testid="multiple-choice-options">
+                        {options.map((opt, i) => {
+                          const label = String.fromCharCode(65 + i);
+                          const isSelected = selectedOption === opt.id;
+                          const showResult = challengeState !== "idle";
+                          const isCorrectOpt = opt.isCorrect;
 
-                  {/* True / False */}
-                  {currentChallenge.type === "true_false" && (
-                    <div className="grid grid-cols-2 gap-4" data-testid="true-false-options">
-                      {["true", "false"].map((val) => {
-                        const isSelected = selectedOption === val;
-                        const showResult = challengeState !== "idle";
-                        const isCorrect = val === currentChallenge.correctAnswer;
+                          let optClass = "border-border hover:border-primary/50 cursor-pointer";
+                          if (showResult && isSelected && challengeState === "correct") optClass = "border-secondary bg-secondary/10";
+                          else if (showResult && isSelected && challengeState === "incorrect") optClass = "border-destructive bg-destructive/10";
+                          else if (showResult && isCorrectOpt) optClass = "border-secondary bg-secondary/10";
+                          else if (isSelected) optClass = "border-primary bg-primary/10";
 
-                        let cls = "border-border hover:border-primary/50 cursor-pointer";
-                        if (showResult && isSelected && challengeState === "correct") cls = "border-secondary bg-secondary/10";
-                        else if (showResult && isSelected && challengeState === "incorrect") cls = "border-destructive bg-destructive/10";
-                        else if (showResult && isCorrect) cls = "border-secondary bg-secondary/10";
-                        else if (isSelected) cls = "border-primary bg-primary/10";
+                          return (
+                            <motion.button
+                              key={opt.id}
+                              whileHover={challengeState === "idle" ? { scale: 1.01 } : {}}
+                              whileTap={challengeState === "idle" ? { scale: 0.99 } : {}}
+                              onClick={() => challengeState === "idle" && setSelectedOption(opt.id)}
+                              className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-colors text-left ${optClass} ${challengeState !== "idle" ? "cursor-default" : ""}`}
+                              data-testid={`option-${opt.id}`}
+                            >
+                              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                                {label}
+                              </span>
+                              <span className="font-medium">{opt.text}</span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                        return (
-                          <motion.button
-                            key={val}
-                            whileHover={challengeState === "idle" ? { scale: 1.02 } : {}}
-                            whileTap={challengeState === "idle" ? { scale: 0.98 } : {}}
-                            onClick={() => challengeState === "idle" && setSelectedOption(val)}
-                            className={`py-8 rounded-2xl border-2 font-bold text-xl transition-colors ${cls} ${challengeState !== "idle" ? "cursor-default" : ""}`}
-                            data-testid={`option-${val}`}
-                          >
-                            {val === "true" ? "True" : "False"}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  )}
+                    {/* True / False */}
+                    {currentChallenge.type === "true_false" && (
+                      <div className="grid grid-cols-2 gap-4" data-testid="true-false-options">
+                        {["true", "false"].map((val) => {
+                          const isSelected = selectedOption === val;
+                          const showResult = challengeState !== "idle";
+                          const isCorrect = val === currentChallenge.correctAnswer;
 
-                  {/* Numeric input */}
-                  {currentChallenge.type === "numeric_input" && (
-                    <div className="space-y-4" data-testid="numeric-input-area">
-                      <Input
-                        type="text"
-                        value={numericAnswer}
-                        onChange={e => challengeState === "idle" && setNumericAnswer(e.target.value)}
-                        placeholder="Enter your answer..."
-                        className="text-lg text-center h-14"
-                        disabled={challengeState !== "idle"}
-                        onKeyDown={e => e.key === "Enter" && canCheck() && challengeState === "idle" && handleCheck()}
-                        data-testid="numeric-answer-input"
-                      />
-                    </div>
-                  )}
+                          let cls = "border-border hover:border-primary/50 cursor-pointer";
+                          if (showResult && isSelected && challengeState === "correct") cls = "border-secondary bg-secondary/10";
+                          else if (showResult && isSelected && challengeState === "incorrect") cls = "border-destructive bg-destructive/10";
+                          else if (showResult && isCorrect) cls = "border-secondary bg-secondary/10";
+                          else if (isSelected) cls = "border-primary bg-primary/10";
 
-                  {/* Feedback */}
-                  <AnimatePresence>
-                    {feedback && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className={`mt-6 p-5 rounded-2xl border ${
-                          feedback.correct
-                            ? "bg-secondary/10 border-secondary/30"
-                            : "bg-destructive/10 border-destructive/30"
-                        }`}
-                        data-testid="challenge-feedback"
-                      >
-                        <div className="flex items-start gap-3">
-                          {feedback.correct
-                            ? <CheckCircle2 className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                            : <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                          }
-                          <div>
-                            <p className={`font-semibold mb-1 ${feedback.correct ? "text-secondary" : "text-destructive"}`}>
-                              {feedback.correct ? "Correct!" : "Not quite"}
-                            </p>
-                            {feedback.correct && feedback.xpEarned > 0 && (
-                              <motion.p
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="text-primary font-semibold text-sm mb-2 flex items-center gap-1"
-                                data-testid="xp-earned"
-                              >
-                                <Zap className="w-3.5 h-3.5" />
-                                +{feedback.xpEarned} XP earned
-                              </motion.p>
-                            )}
-                            <p className="text-sm text-foreground leading-relaxed" data-testid="challenge-explanation">
-                              {feedback.explanation}
-                            </p>
-                            {!feedback.correct && feedback.hint && (
-                              <p className="text-sm text-muted-foreground mt-2 italic" data-testid="challenge-hint">
-                                Hint: {feedback.hint}
+                          return (
+                            <motion.button
+                              key={val}
+                              whileHover={challengeState === "idle" ? { scale: 1.02 } : {}}
+                              whileTap={challengeState === "idle" ? { scale: 0.98 } : {}}
+                              onClick={() => challengeState === "idle" && setSelectedOption(val)}
+                              className={`py-8 rounded-2xl border-2 font-bold text-xl transition-colors ${cls} ${challengeState !== "idle" ? "cursor-default" : ""}`}
+                              data-testid={`option-${val}`}
+                            >
+                              {val === "true" ? "True" : "False"}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Numeric input */}
+                    {currentChallenge.type === "numeric_input" && (
+                      <div className="space-y-4" data-testid="numeric-input-area">
+                        <Input
+                          type="text"
+                          value={numericAnswer}
+                          onChange={e => challengeState === "idle" && setNumericAnswer(e.target.value)}
+                          placeholder="Enter your answer..."
+                          className="text-lg text-center h-14"
+                          disabled={challengeState !== "idle"}
+                          onKeyDown={e => e.key === "Enter" && canCheck() && challengeState === "idle" && handleCheck()}
+                          data-testid="numeric-answer-input"
+                        />
+                        {currentChallenge.hint && challengeState === "idle" && (
+                          <p className="text-xs text-center text-muted-foreground italic">{currentChallenge.hint}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Feedback */}
+                    <AnimatePresence>
+                      {feedback && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className={`mt-6 p-5 rounded-2xl border ${
+                            feedback.correct
+                              ? "bg-secondary/10 border-secondary/30"
+                              : "bg-destructive/10 border-destructive/30"
+                          }`}
+                          data-testid="challenge-feedback"
+                        >
+                          <div className="flex items-start gap-3">
+                            {feedback.correct
+                              ? <CheckCircle2 className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                              : <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                            }
+                            <div>
+                              <p className={`font-semibold mb-1 ${feedback.correct ? "text-secondary" : "text-destructive"}`}>
+                                {feedback.correct ? "Correct!" : "Not quite"}
                               </p>
-                            )}
+                              {feedback.correct && feedback.xpEarned > 0 && (
+                                <motion.p
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  className="text-primary font-semibold text-sm mb-2 flex items-center gap-1"
+                                  data-testid="xp-earned"
+                                >
+                                  <Zap className="w-3.5 h-3.5" />
+                                  +{feedback.xpEarned} XP earned
+                                </motion.p>
+                              )}
+                              <p className="text-sm text-foreground leading-relaxed" data-testid="challenge-explanation">
+                                {feedback.explanation}
+                              </p>
+                              {!feedback.correct && feedback.hint && (
+                                <p className="text-sm text-muted-foreground mt-2 italic" data-testid="challenge-hint">
+                                  Hint: {feedback.hint}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                  {/* Action buttons */}
-                  <div className="mt-8 flex gap-3">
-                    {challengeState === "idle" && (
-                      <Button
-                        size="lg"
-                        className="flex-1"
-                        onClick={handleCheck}
-                        disabled={!canCheck() || completeChallenge.isPending}
-                        data-testid="button-check-answer"
-                      >
-                        {completeChallenge.isPending ? "Checking..." : "Check Answer"}
-                      </Button>
-                    )}
-                    {challengeState === "correct" && (
-                      <Button size="lg" className="flex-1 gap-2" onClick={handleNext} data-testid="button-next-challenge">
-                        {currentIndex + 1 >= challenges.length ? "Complete Lesson" : "Continue"}
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {challengeState === "incorrect" && (
-                      <>
-                        <Button size="lg" variant="outline" className="gap-2" onClick={handleRetry} data-testid="button-retry">
-                          <RotateCcw className="w-4 h-4" />
-                          Try Again
+                    {/* Action buttons */}
+                    <div className="mt-8 flex gap-3">
+                      {challengeState === "idle" && (
+                        <Button
+                          size="lg"
+                          className="flex-1"
+                          onClick={handleCheck}
+                          disabled={!canCheck() || completeChallenge.isPending}
+                          data-testid="button-check-answer"
+                        >
+                          {completeChallenge.isPending ? "Checking..." : "Check Answer"}
                         </Button>
-                        <Button size="lg" variant="ghost" className="gap-2" onClick={handleNext} data-testid="button-skip">
-                          Skip
+                      )}
+                      {challengeState === "correct" && (
+                        <Button size="lg" className="flex-1 gap-2" onClick={handleNext} data-testid="button-next-challenge">
+                          {currentIndex + 1 >= challenges.length ? "Complete Lesson" : "Continue"}
                           <ArrowRight className="w-4 h-4" />
                         </Button>
-                      </>
-                    )}
+                      )}
+                      {challengeState === "incorrect" && (
+                        <>
+                          <Button size="lg" variant="outline" className="gap-2" onClick={handleRetry} data-testid="button-retry">
+                            <RotateCcw className="w-4 h-4" />
+                            Try Again
+                          </Button>
+                          <Button size="lg" variant="ghost" className="gap-2" onClick={handleNext} data-testid="button-skip">
+                            Skip
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
