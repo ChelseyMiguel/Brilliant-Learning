@@ -9,7 +9,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Brain, ArrowLeft, ArrowRight, CheckCircle2, Lock, Circle } from "lucide-react";
+import { Brain, ArrowLeft, ArrowRight, CheckCircle2, Lock, Circle, FlaskConical } from "lucide-react";
+import { LESSON_LABS } from "@/components/labs";
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -172,6 +173,12 @@ export default function CourseDetailPage() {
                                 <p className="text-xs text-muted-foreground font-medium mb-1">Lesson {lesson.order}</p>
                                 <h3 className="font-semibold text-base">{lesson.title}</h3>
                                 <p className="text-sm text-muted-foreground mt-1">{lesson.description}</p>
+                                {LESSON_LABS[lesson.id] && (
+                                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary">
+                                    <FlaskConical className="w-3 h-3" />
+                                    Interactive lab
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 text-xs flex-shrink-0 ml-4">
                                 <span className="text-muted-foreground">{lesson.challengeCount} challenges</span>
@@ -186,6 +193,12 @@ export default function CourseDetailPage() {
                           <p className="text-xs text-muted-foreground font-medium mb-1">Lesson {lesson.order}</p>
                           <h3 className="font-semibold text-base">{lesson.title}</h3>
                           <p className="text-sm text-muted-foreground mt-1">{lesson.description}</p>
+                          {LESSON_LABS[lesson.id] && (
+                            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-muted border border-border text-xs font-medium text-muted-foreground">
+                              <FlaskConical className="w-3 h-3" />
+                              Interactive lab
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

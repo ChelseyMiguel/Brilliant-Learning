@@ -1,0 +1,67 @@
+It sounds like you’re ready to move from static UI to **functional interactive systems**. If your animations aren't showing, it’s likely because the AI needs a specific instruction to use a web-compatible animation library like **Framer Motion**, **Lucide-React** (for icons), or **Rive** (which Brilliant uses).
+
+To recreate the "Google Learn Your Way" immersive experience and the "Brilliant/Rive" tactile feel, use these highly technical prompts.
+
+---
+
+## 1. The "Sandbox Simulation" Prompt
+Use this to build the **Coin Flip/Heads & Tails** testing simulation. This focuses on the "Probability Playground" you mentioned.
+
+> **Prompt:** "Act as a Creative Developer. I need a functional 'Coin Flip Simulation' component for a Learning Center. 
+> 
+> **The Simulation Logic:**
+> * Create a state that tracks `totalFlips`, `headsCount`, and `tailsCount`.
+> * Add a 'Flip 1x' and a 'Flip 100x' button.
+> * When 'Flip 100x' is clicked, run a loop that calculates the results instantly but animates a progress bar to show the 'work' being done.
+> 
+> **The Visuals (Brilliant/Rive style):**
+> * Center an SVG coin. Use **Framer Motion** to create a 3D-flip effect (rotating on the Y-axis) whenever a flip occurs.
+> * Below the coin, create a **Live Probability Graph**. Use a sparkline to show how the ratio of Heads to Tails approaches 0.5 as the number of flips increases.
+> 
+> **Interactive Feedback:** > * If the user flips the coin 10 times and gets 8 Heads, show a 'Notice' panel: 'The current ratio is 80%. Do you think the next flip is more likely to be Tails? Play more to see the Law of Large Numbers in action.'
+> 
+> **Styling:** Slate-900 for the coin and Emerald-600 for the graph line. Ensure it is responsive and fits in a `slate-50` container."
+
+
+
+---
+
+## 2. The "Immersive Discovery" Prompt (Google Style)
+Google's "Learn Your Way" uses **Immersive Text** where the simulation reacts to the user's scroll or hover.
+
+> **Prompt:** "Design an 'Immersive Text' component for a lesson on **[Insert Topic, e.g., Atoms]**.
+> 
+> **The Layout:**
+> * Split the screen: The left side is a scrolling text narrative, and the right side is a persistent 'Visual Lab.'
+> * **Scroll-Triggered Events:** As the user scrolls to specific paragraphs, the Visual Lab should update. 
+>     * Paragraph 1: Show a single Hydrogen atom.
+>     * Paragraph 2: Add an electron to show Helium.
+> * **Interactive Overlay:** Allow the user to 'poke' the atoms in the Lab to see their energy levels vibrate.
+> 
+> **The Goal:** The text should ask questions like 'What happens to the stability when you add another proton?' and the user should be able to try it in the right-hand panel immediately."
+
+---
+
+## 3. The "Rive-Style" Micro-Interaction Prompt
+To get that "Brilliant" feel, you need **State Machines**. This prompt ensures the animations react to correct/incorrect answers with personality.
+
+> **Prompt:** "I want to animate my 'Check Answer' button and 'Success' state using **Framer Motion** to mimic a Rive state machine.
+> 
+> **Button Logic:**
+> * **Idle State:** A gentle pulse on the 'Check Answer' button.
+> * **Success (Emerald):** When the answer is correct, the button should 'pop' (scale up and down), and a burst of emerald-colored confetti particles should emanate from the button.
+> * **Error (Red):** The button should perform a horizontal 'shake' animation and the border should glow red.
+> * **Amber (Partial Credit):** The button should tilt slightly and show a 'lightbulb' icon that glows amber, signaling a hint is available.
+> 
+> Provide the React code for these transitions, ensuring they feel 'snappy' and tactile (use a spring transition: `stiffness: 300, damping: 20`)."
+
+---
+
+## 🛠️ Troubleshooting: Why aren't they showing?
+
+If your animations aren't appearing, check these three things in your code:
+1.  **Missing Libraries:** Ensure you have `framer-motion` or `lucide-react` installed in your project.
+2.  **Z-Index:** Sometimes the "Slate-50" background can sit on top of the animation. Ensure your SVG or Canvas has a higher `z-index`.
+3.  **State Mismatch:** If the animation is tied to `isCorrect`, make sure that state is actually changing when you click the button.
+
+**Which of these simulations would you like to build first?** We could start with a **Marble Bag** simulation to match the question you just designed!

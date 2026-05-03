@@ -1,0 +1,105 @@
+Looking at this Learning Center implementation, here are the key improvements I'd make:
+
+## 1. **Lab Discovery Flow**
+The "three guided steps → unlock practice" pattern is too rigid and repetitive. Instead:
+- **Dynamic step count** — some labs need 2 observations, some need 5
+- **Non-linear discovery** — let students reveal insights in any order (they see all prompts faded, click whichever interests them first)
+- **Skip option** — "I've figured this out, start practice now" for students who already get it
+
+## 2. **Diagramatics Integration Depth**
+You're only using basic shapes and `draw_to_svg_element`. Go deeper:
+- **`add_interactive_mousedown`** for direct manipulation — let students drag probability region boundaries, not just sliders
+- **`locator()`** for constrained dragging — coin in the Area Model lab should snap to grid cells
+- **Animation with `to_svg_element_animated`** — show spring compression/extension over time, not just static frames
+
+## 3. **Lab State Persistence**
+Right now every lab resets when you navigate away. Add:
+```typescript
+// In DiagramaticsLab.tsx
+useEffect(() => {
+  const saved = localStorage.getItem(`lab-state-${lab.id}`);
+  if (saved) setInputs(JSON.parse(saved));
+}, []);
+
+useEffect(() => {
+  localStorage.setItem(`lab-state-${lab.id}`, JSON.stringify(inputs));
+}, [inputs]);
+```
+
+## 4. **Observation Quality**
+The guided prompts are too leading. Compare:
+
+**Current:**
+> "Notice how the line approaches 50% as trials increase"
+
+**Better:**
+> "Run 10 flips. Now run 1000. What changed about how much the line jumps around?"
+
+Make students *notice*, don't tell them what to notice.
+
+## 5. **Missing Physics in Spring Lab**
+You're showing Hooke's Law but the diagram is static. Use Diagramatics' animation:
+```javascript
+// Oscillating spring over time
+int.draw_function = (inp) => {
+  let t = inp['time'];
+  let x = inp['amplitude'] * Math.cos(2 * Math.PI * inp['frequency'] * t);
+  let spring_bottom = V2(0, x);
+  let spring = mechanics.spring(V2(0, 10), spring_bottom, {...});
+  // ... draw PE/KE bars based on x and velocity
+}
+```
+
+## 6. **React Wrapper Inefficiency**
+Your `DiagramaticsLab` component re-creates the entire Interactive instance on every input change. Fix:
+```typescript
+const interactiveRef = useRef<Interactive | null>(null);
+
+useEffect(() => {
+  if (!interactiveRef.current) {
+    interactiveRef.current = new Interactive(svgRef.current!);
+    // ... setup
+  }
+  interactiveRef.current.set_inputs(inputs); // Update, don't recreate
+}, [inputs]);
+```
+
+## 7. **Accessibility**
+Diagramatics renders pure SVG — screen readers see nothing. Add:
+- `<desc>` tags in the SVG with plain-text descriptions of what's shown
+- Keyboard controls for sliders (arrow keys to increment/decrement)
+- `role="img"` and `aria-label` on the SVG container
+
+## 8. **Lab Catalog Discoverability**
+The flask icon is subtle — students won't know labs exist. Add:
+- **Badge on lesson cards** in the dashboard: "🧪 Interactive lab"
+- **"Try the lab first"** suggestion in the lesson intro if a lab exists
+- **Lab completion tracking** — checkmark when all observations unlocked
+
+## 9. **Mobile Responsiveness**
+Diagramatics diagrams are fixed-size. The current layout will break on phones. Use:
+```typescript
+const isMobile = window.innerWidth < 768;
+interactive.set_size(isMobile ? 300 : 600, isMobile ? 200 : 400);
+```
+Or switch to a vertical stack (diagram on top, observations below) on narrow viewports.
+
+## 10. **Performance**
+You're calling `draw_to_svg_element` on every React render. Diagramatics already handles incremental updates — let it:
+```typescript
+// Only initialize once
+useEffect(() => {
+  const int = new Interactive(svgRef.current!);
+  int.draw_function = lab.drawFunction;
+  return () => int.destroy(); // Cleanup
+}, []);
+
+// Update inputs, Diagramatics re-renders internally
+useEffect(() => {
+  interactiveRef.current?.set_inputs(inputs);
+}, [inputs]);
+```
+
+---
+
+**Bottom line:** You've built a solid foundation, but it's not yet using Diagramatics' strengths (direct manipulation, animation, locators). The observation prompts need to guide *exploration*, not narrate conclusions. And the UX assumes students know to look for the flask icon — make labs more prominent in the flow.

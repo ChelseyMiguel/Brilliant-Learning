@@ -15,11 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, CheckCircle2, XCircle, Zap, ArrowRight, RotateCcw, FlaskConical } from "lucide-react";
+import { X, Zap, ArrowRight, RotateCcw, FlaskConical } from "lucide-react";
 import { Link } from "wouter";
 import { LESSON_ANIMATIONS } from "@/components/animations";
 import { LESSON_LABS } from "@/components/labs";
 import LearningCenter from "@/components/labs/LearningCenter";
+import AnswerFeedback, { CheckAnswerButton } from "@/components/AnswerFeedback";
 
 type ChallengeState = "idle" | "answered" | "correct" | "incorrect";
 
@@ -376,82 +377,25 @@ export default function LessonPlayerPage() {
 
                     {/* Feedback */}
                     <AnimatePresence>
-                      {feedback && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className={`mt-6 p-5 rounded-2xl border ${
-                            feedback.correct
-                              ? "bg-secondary/10 border-secondary/30"
-                              : "bg-destructive/10 border-destructive/30"
-                          }`}
-                          data-testid="challenge-feedback"
-                        >
-                          <div className="flex items-start gap-3">
-                            {feedback.correct
-                              ? <CheckCircle2 className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                              : <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                            }
-                            <div>
-                              <p className={`font-semibold mb-1 ${feedback.correct ? "text-secondary" : "text-destructive"}`}>
-                                {feedback.correct ? "Correct!" : "Not quite"}
-                              </p>
-                              {feedback.correct && feedback.xpEarned > 0 && (
-                                <motion.p
-                                  initial={{ scale: 0.8, opacity: 0 }}
-                                  animate={{ scale: 1, opacity: 1 }}
-                                  className="text-primary font-semibold text-sm mb-2 flex items-center gap-1"
-                                  data-testid="xp-earned"
-                                >
-                                  <Zap className="w-3.5 h-3.5" />
-                                  +{feedback.xpEarned} XP earned
-                                </motion.p>
-                              )}
-                              <p className="text-sm text-foreground leading-relaxed" data-testid="challenge-explanation">
-                                {feedback.explanation}
-                              </p>
-                              {!feedback.correct && feedback.hint && (
-                                <p className="text-sm text-muted-foreground mt-2 italic" data-testid="challenge-hint">
-                                  Hint: {feedback.hint}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
+                      {feedback && <AnswerFeedback feedback={feedback} />}
                     </AnimatePresence>
 
-                    {/* Action buttons */}
+                    {/* Action buttons — CheckAnswerButton stays mounted so animations play */}
                     <div className="mt-8 flex gap-3">
-                      {challengeState === "idle" && (
-                        <Button
-                          size="lg"
-                          className="flex-1"
-                          onClick={handleCheck}
-                          disabled={!canCheck() || completeChallenge.isPending}
-                          data-testid="button-check-answer"
-                        >
-                          {completeChallenge.isPending ? "Checking..." : "Check Answer"}
-                        </Button>
-                      )}
-                      {challengeState === "correct" && (
-                        <Button size="lg" className="flex-1 gap-2" onClick={handleNext} data-testid="button-next-challenge">
-                          {currentIndex + 1 >= challenges.length ? "Complete Lesson" : "Continue"}
+                      <CheckAnswerButton
+                        challengeState={challengeState}
+                        disabled={challengeState === "idle" && !canCheck()}
+                        pending={completeChallenge.isPending}
+                        onClick={handleCheck}
+                        onNext={handleNext}
+                        onRetry={handleRetry}
+                        isLastChallenge={currentIndex + 1 >= challenges.length}
+                      />
+                      {challengeState === "incorrect" && (
+                        <Button size="lg" variant="ghost" className="gap-2" onClick={handleNext} data-testid="button-skip">
+                          Skip
                           <ArrowRight className="w-4 h-4" />
                         </Button>
-                      )}
-                      {challengeState === "incorrect" && (
-                        <>
-                          <Button size="lg" variant="outline" className="gap-2" onClick={handleRetry} data-testid="button-retry">
-                            <RotateCcw className="w-4 h-4" />
-                            Try Again
-                          </Button>
-                          <Button size="lg" variant="ghost" className="gap-2" onClick={handleNext} data-testid="button-skip">
-                            Skip
-                            <ArrowRight className="w-4 h-4" />
-                          </Button>
-                        </>
                       )}
                     </div>
                   </div>
