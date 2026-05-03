@@ -1,253 +1,232 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState } from "react";
+
+// ─── Coin geometry constants ────────────────────────────────────────────────
+const CS  = 180;              // coin diameter, px
+const TH  = 6;                // thicc factor (matches reference)
+const EW  = CS / TH;         // edge width  = 30 px
+const EHZ = EW / 2;          // half-edge   = 15 px (face z-offset)
+
+// ─── Injected keyframes (reference-faithful) ────────────────────────────────
+// rotateX is the real-coin toss axis. --flips drives the landing face:
+//   720deg (2 full turns)  → front face  → H
+//   900deg (2.5 full turns) → back face  → T
+const STYLES = `
+  @keyframes lum-coin-flip {
+    0%   { transform: rotateY(0)      rotateX(0deg)                       scale(1);   }
+    10%  { transform: rotateY(45deg)  rotateX(calc(var(--lum-flips) / 3)) scale(1.6); }
+    60%  { transform: rotateY(-30deg) rotateX(calc(var(--lum-flips) / 1.5)) scale(2); }
+    100% { transform: rotateY(0)      rotateX(var(--lum-flips))           scale(1);   }
+  }
+  @keyframes lum-floor-line {
+    40%  { opacity: 1; background-position: -${CS * 0.8}px 0; }
+    70%  { opacity: 1; background-position:  ${CS * 0.5}px 0; }
+    100% { opacity: 1; background-position:  ${CS * 1.0}px 0; }
+  }
+`;
+
+// Colours
+const AMBER_MID  = "#f59e0b";
+const AMBER_DARK = "#d97706";
+const AMBER_XDRK = "#b45309";
+const SLATE_MID  = "#94a3b8";
+const SLATE_DARK = "#64748b";
 
 export default function CoinFlipAnimation() {
-  const [dragY, setDragY] = useState(0);
-  const [rotation, setRotation] = useState(0);
-  const [result, setResult] = useState<"H" | "T" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+  const [coinKey,  setCoinKey]  = useState(0);   // remount to replay CSS anim
+  const [linesKey, setLinesKey] = useState(0);
+  const [flips, setFlips] = useState("720deg");
+  const [result, setResult] = useState<"H" | "T" | null>(null);
   const [heads, setHeads] = useState(0);
   const [tails, setTails] = useState(0);
 
-  const isDragging = useRef(false);
-  const rafRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const cancelRaf = () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  };
-
-  const runFlip = useCallback((startDragY: number, startRotation: number) => {
-    cancelRaf();
-    setIsFlipping(true);
-    setShowResult(false);
-
-    const flipResult: "H" | "T" = Math.random() < 0.5 ? "H" : "T";
-    // Heads = 0° or 360°, Tails = 180°
-    // After 1800° of spin, land at the correct face
-    const spinAmount = 1800;
-    const targetRotation = flipResult === "H" ? startRotation + spinAmount : startRotation + spinAmount + 180;
-    const targetDragY = 400;
-    const duration = 850;
-    let t0: number | null = null;
-
-    const step = (ts: number) => {
-      if (!t0) t0 = ts;
-      const elapsed = ts - t0;
-      const p = Math.min(elapsed / duration, 1);
-      // cubic ease-out for fall, smoothstep for spin
-      const fallEase = 1 - Math.pow(1 - p, 2.5);
-      const spinEase = 1 - Math.pow(1 - p, 3);
-      setDragY(startDragY + fallEase * (targetDragY - startDragY));
-      setRotation(startRotation + spinEase * (targetRotation - startRotation));
-
-      if (p < 1) {
-        rafRef.current = requestAnimationFrame(step);
-      } else {
-        setResult(flipResult);
-        setShowResult(true);
-        setIsFlipping(false);
-        if (flipResult === "H") setHeads((h) => h + 1);
-        else setTails((t) => t + 1);
-
-        // Bounce-settle then reset
-        setTimeout(() => {
-          cancelRaf();
-          let r0: number | null = null;
-          const resetDuration = 500;
-          const fromDragY = targetDragY;
-
-          const resetStep = (ts: number) => {
-            if (!r0) r0 = ts;
-            const p2 = Math.min((ts - r0) / resetDuration, 1);
-            const ease = 1 - Math.pow(1 - p2, 3);
-            setDragY(fromDragY * (1 - ease));
-            // Normalise rotation so we don't accumulate large numbers
-            const normalised = ((targetRotation % 360) + 360) % 360;
-            setRotation(normalised * (1 - ease));
-            if (p2 < 1) {
-              rafRef.current = requestAnimationFrame(resetStep);
-            } else {
-              setDragY(0);
-              setRotation(0);
-              setShowResult(false);
-            }
-          };
-          rafRef.current = requestAnimationFrame(resetStep);
-        }, 1100);
-      }
-    };
-    rafRef.current = requestAnimationFrame(step);
-  }, []);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const doFlip = () => {
     if (isFlipping) return;
-    isDragging.current = true;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    cancelRaf();
-  };
+    const winner: "H" | "T" = Math.random() > 0.5 ? "H" : "T";
+    const deg = winner === "H" ? "720deg" : "900deg";
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging.current || isFlipping) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const y = Math.max(0, Math.min(340, e.clientY - rect.top - 110));
-    setDragY(y);
-    setRotation(y * 8);
-  };
+    setFlips(deg);
+    setIsFlipping(true);
+    setCoinKey((k) => k + 1);
+    setLinesKey((k) => k + 1);
 
-  const handlePointerUp = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    if (!isFlipping) {
-      const currentY = dragY;
-      const currentRot = rotation;
-      if (currentY > 80) {
-        runFlip(currentY, currentRot);
-      } else {
-        cancelRaf();
-        // Spring back
-        let r0: number | null = null;
-        const fromY = currentY;
-        const fromR = currentRot;
-        const springBack = (ts: number) => {
-          if (!r0) r0 = ts;
-          const p = Math.min((ts - r0) / 250, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
-          setDragY(fromY * (1 - ease));
-          setRotation(fromR * (1 - ease));
-          if (p < 1) rafRef.current = requestAnimationFrame(springBack);
-          else { setDragY(0); setRotation(0); }
-        };
-        rafRef.current = requestAnimationFrame(springBack);
-      }
-    }
+    // Animation is 1 s; give a tiny buffer
+    setTimeout(() => {
+      setResult(winner);
+      if (winner === "H") setHeads((h) => h + 1);
+      else setTails((t) => t + 1);
+      setIsFlipping(false);
+    }, 1150);
   };
-
-  const flipButton = () => {
-    if (!isFlipping) runFlip(0, 0);
-  };
-
-  useEffect(() => () => cancelRaf(), []);
 
   const total = heads + tails;
-  const shadowBlur = 8 + dragY * 0.12;
-  const shadowOpacity = Math.min(0.06 + dragY * 0.0005, 0.22);
 
   return (
-    <div className="bg-[#f8fafc] rounded-2xl border border-slate-200 overflow-hidden select-none">
-      {/* Drag area */}
+    <div className="select-none overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]">
+      <style>{STYLES}</style>
+
+      {/* ── Stage ─────────────────────────────────────────────────────── */}
       <div
-        ref={containerRef}
-        className="relative h-[500px] overflow-hidden"
-        style={{ cursor: isFlipping ? "default" : isDragging.current ? "grabbing" : "grab" }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        className="relative flex items-center justify-center"
+        style={{ height: 460, perspective: 1400 }}
+        onClick={doFlip}
       >
-        {/* Instruction text */}
-        <p className="absolute top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-slate-400 uppercase tracking-widest pointer-events-none whitespace-nowrap">
-          {isFlipping ? "Flipping…" : dragY > 40 ? "Release to flip" : "Drag the coin down"}
-        </p>
-
-        {/* Pull guide line */}
+        {/* ── Floor burst lines ─────────────────────────────────── */}
         <div
-          className="absolute left-1/2 top-[88px] -translate-x-1/2 w-px bg-slate-200 rounded-full pointer-events-none"
-          style={{ height: Math.max(dragY - 2, 0), opacity: dragY > 4 ? 0.7 : 0 }}
-        />
-
-        {/* 3D Coin */}
-        <div
-          className="absolute left-1/2 top-16 pointer-events-none"
           style={{
-            transform: `translateX(-50%) translateY(${dragY}px)`,
-            perspective: "900px",
+            position: "absolute",
+            width: CS,
+            height: CS,
+            pointerEvents: "none",
           }}
         >
-          <div
-            style={{
-              width: 120,
-              height: 120,
-              position: "relative",
-              transformStyle: "preserve-3d",
-              transform: `rotateY(${rotation}deg)`,
-              filter: `drop-shadow(0 ${4 + dragY * 0.06}px ${shadowBlur}px rgba(0,0,0,${shadowOpacity}))`,
-            }}
-          >
-            {/* Heads face */}
+          {Array.from({ length: 12 }, (_, i) => (
             <div
+              key={`${linesKey}-${i}`}
               style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                background: "linear-gradient(145deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 2,
-                backfaceVisibility: "hidden",
-                WebkitBackfaceVisibility: "hidden",
-                boxShadow: "inset 0 4px 8px rgba(255,255,255,0.35), inset 0 -5px 10px rgba(0,0,0,0.2)",
+                position:       "absolute",
+                top:            "50%",
+                left:           "50%",
+                marginTop:      -(EW / 8),
+                width:          CS,
+                height:         EW / 4,
+                transformOrigin:"center left",
+                borderRadius:   EW / 4,
+                background:     "linear-gradient(90deg, rgba(255,255,255,0.85) 20%, transparent 20%)",
+                backgroundRepeat: "no-repeat",
+                opacity:        0,
+                transform:      `rotate(${i * 30}deg)${i % 2 !== 0 ? " scale(1.1)" : ""}`,
+                animation:      isFlipping
+                  ? `lum-floor-line ${1 * 0.6}s ease-out forwards`
+                  : "none",
+                animationDelay: isFlipping ? "0.65s" : "0s",
               }}
-            >
-              <span style={{ fontSize: 38, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>H</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: "0.12em" }}>HEADS</span>
-            </div>
-
-            {/* Tails face */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                background: "linear-gradient(145deg, #cbd5e1 0%, #94a3b8 50%, #64748b 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 2,
-                backfaceVisibility: "hidden",
-                WebkitBackfaceVisibility: "hidden",
-                transform: "rotateY(180deg)",
-                boxShadow: "inset 0 4px 8px rgba(255,255,255,0.3), inset 0 -5px 10px rgba(0,0,0,0.2)",
-              }}
-            >
-              <span style={{ fontSize: 38, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>T</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.65)", letterSpacing: "0.12em" }}>TAILS</span>
-            </div>
-          </div>
+            />
+          ))}
         </div>
 
-        {/* Landing zone ring */}
-        <div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full border-[2.5px] border-dashed pointer-events-none transition-all duration-200"
-          style={{
-            borderColor: "#10b981",
-            opacity: isFlipping ? 0.6 : dragY > 15 ? 0.35 : 0.12,
-            transform: `translateX(-50%) scale(${isFlipping ? 1.05 : 1})`,
-          }}
-        />
+        {/* ── Instruction text ──────────────────────────────────── */}
+        <p
+          className="absolute top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-slate-400 uppercase tracking-widest pointer-events-none whitespace-nowrap"
+        >
+          {isFlipping ? "Flipping…" : result ? `${result === "H" ? "Heads" : "Tails"}! Click to flip again` : "Click the coin to flip"}
+        </p>
 
-        {/* Result badge */}
-        {showResult && !isFlipping && (
+        {/* ── Coin ──────────────────────────────────────────────── */}
+        <div
+          key={coinKey}
+          style={{
+            position:        "relative",
+            height:          CS,
+            width:           CS,
+            transformStyle:  "preserve-3d",
+            transformOrigin: "50%",
+            cursor:          isFlipping ? "default" : "grab",
+            animation:       isFlipping ? "lum-coin-flip 1s linear forwards" : "none",
+            ["--lum-flips" as any]: flips,
+          }}
+        >
+          {/* Heads face — front (+Z) */}
           <div
-            className="absolute bottom-14 left-1/2 -translate-x-1/2 pointer-events-none"
             style={{
-              animation: "fadeSlideUp 0.25s ease-out",
+              position:         "absolute",
+              inset:            0,
+              borderRadius:     "50%",
+              background:       `linear-gradient(145deg, #fcd34d 0%, ${AMBER_MID} 50%, ${AMBER_DARK} 100%)`,
+              border:           `${CS * 0.07}px solid #fbbf24`,
+              boxShadow:        `inset 0 0 0 ${CS * 0.025}px ${AMBER_DARK}, inset 0 4px 10px rgba(255,255,255,0.3), inset 0 -4px 10px rgba(0,0,0,0.2)`,
+              display:          "flex",
+              alignItems:       "center",
+              justifyContent:   "center",
+              transform:        `translateZ(${EHZ}px)`,
             }}
           >
-            <div className={`px-5 py-2 rounded-full shadow-md font-bold text-sm whitespace-nowrap ${
-              result === "H" ? "bg-amber-400 text-white" : "bg-slate-600 text-white"
-            }`}>
-              {result === "H" ? "Heads!" : "Tails!"}
-            </div>
+            <span style={{
+              fontSize:   CS * 0.38,
+              fontWeight: 900,
+              color:      AMBER_DARK,
+              lineHeight: 1,
+              textShadow: `${CS * 0.01}px ${CS * 0.01}px 0 ${AMBER_XDRK}, -${CS * 0.01}px -${CS * 0.01}px 0 #fcd34d`,
+              userSelect: "none",
+            }}>H</span>
           </div>
-        )}
+
+          {/* Tails face — back (−Z, rotated so lettering reads correctly) */}
+          <div
+            style={{
+              position:         "absolute",
+              inset:            0,
+              borderRadius:     "50%",
+              background:       `linear-gradient(145deg, #e2e8f0 0%, ${SLATE_MID} 50%, ${SLATE_DARK} 100%)`,
+              border:           `${CS * 0.07}px solid #cbd5e1`,
+              boxShadow:        `inset 0 0 0 ${CS * 0.025}px ${SLATE_DARK}, inset 0 4px 10px rgba(255,255,255,0.25), inset 0 -4px 10px rgba(0,0,0,0.2)`,
+              display:          "flex",
+              alignItems:       "center",
+              justifyContent:   "center",
+              transform:        `translateZ(-${EHZ}px) rotateY(180deg) rotateZ(180deg)`,
+            }}
+          >
+            <span style={{
+              fontSize:   CS * 0.38,
+              fontWeight: 900,
+              color:      SLATE_DARK,
+              lineHeight: 1,
+              textShadow: `${CS * 0.01}px ${CS * 0.01}px 0 #475569, -${CS * 0.01}px -${CS * 0.01}px 0 #e2e8f0`,
+              userSelect: "none",
+            }}>T</span>
+          </div>
+
+          {/* ── Cylindrical edge (16 segments) ─────────────────── */}
+          <div
+            style={{
+              position:          "absolute",
+              inset:             0,
+              transform:         `translateX(${CS / 2 - EW / 2}px)`,
+              transformStyle:    "preserve-3d",
+              backfaceVisibility:"hidden",
+            }}
+          >
+            {Array.from({ length: 16 }, (_, i) => (
+              <div
+                key={i}
+                style={{
+                  height:            CS,
+                  width:             EW,
+                  position:          "absolute",
+                  transformStyle:    "preserve-3d",
+                  backfaceVisibility:"hidden",
+                  transform:         `rotateY(90deg) rotateX(${i * 11.25}deg)`,
+                }}
+              >
+                {/* Top rim cap */}
+                <div style={{
+                  display:         "block",
+                  height:          CS / 10,
+                  width:           EW,
+                  position:        "absolute",
+                  top:             0,
+                  transformOrigin: "top center",
+                  transform:       "rotateX(84.375deg)",
+                  background:      `repeating-linear-gradient(${AMBER_DARK} 0, ${AMBER_DARK} 25%, ${AMBER_XDRK} 25%, ${AMBER_XDRK} 50%)`,
+                }} />
+                {/* Bottom rim cap */}
+                <div style={{
+                  display:         "block",
+                  height:          CS / 10,
+                  width:           EW,
+                  position:        "absolute",
+                  bottom:          0,
+                  transformOrigin: "center bottom",
+                  transform:       "rotateX(84.375deg)",
+                  background:      `repeating-linear-gradient(${AMBER_XDRK} 0, ${AMBER_XDRK} 25%, ${AMBER_DARK} 25%, ${AMBER_DARK} 50%)`,
+                }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Stats + controls */}
+      {/* ── Stats + Flip button ────────────────────────────────────────── */}
       <div className="px-5 py-4 border-t border-slate-100 bg-white">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3 text-sm font-bold">
@@ -272,20 +251,13 @@ export default function CoinFlipAnimation() {
         )}
 
         <button
-          onClick={flipButton}
+          onClick={doFlip}
           disabled={isFlipping}
           className="w-full h-10 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-bold disabled:opacity-40 transition-colors"
         >
           {isFlipping ? "Flipping…" : "Flip"}
         </button>
       </div>
-
-      <style>{`
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
