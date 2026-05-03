@@ -1,0 +1,67 @@
+I have analyzed your images to understand the specific type of learning platform you are building. The structure, bento-grid layout, and interaction model are clear.
+
+To move from your current static model to an **Immersive Text** system like Google’s *Learn Your Way*, or to add **State-Driven Animations** like Brilliant’s, you must move beyond design-only requests. Your prompts should ask the AI to build the **"Mental Model"** and the **"State Machine"** that sit *behind* the pixels.
+
+Here is the master list of prompt engineering recipes you need to wire up the functionality and bring Lumina Learning to life.
+
+***
+
+## Recipe 1: The "Immersive Text Controller" (Google-Style)
+This is for building the layout shown in your images, where text and an interactive simulation are synced.
+
+> **Prompt:** "Act as a Senior Creative Developer. Write the full React and Tailwind CSS code for a 'Scrollytelling' lesson on **[Topic: e.g., Microeconomics - Supply & Demand]**.
+>
+> **The Layout:**
+> * Create a two-column, desktop-first layout. The left column is a scrollable text narrative. The right column is a fixed, sticky `div` containing an interactive SVG simulation (e.g., a supply/demand graph).
+>
+> **The State Management:**
+> * Use the `Intersection Observer API` to track which text paragraph is currently in view.
+> * Create a React `state` variable for the current `simulationIndex`. 
+> * Write a function that updates `simulationIndex` based on the visible paragraph: >     - Paragraph 1 (Introduction): `simulationIndex = 0` (Static Graph)
+>     - Paragraph 2 (Equilibrium): `simulationIndex = 1` (Animate the Supply curve shifting).
+>
+> **Styling:** Use a `slate-50` background for the simulation Stage and a `relative z-50` class for all interactive buttons to ensure mouse clicks work. Use **Outfit** font for all text."
+
+***
+
+## Recipe 2: The "Functional Sandbox Simulation" (Head/Tails)
+Use this prompt to build the actual mathematical model that runs your learning center’s playground.
+
+> **Prompt:** "Design an interactive 'Probability Lab' using React and **Framer Motion**.
+>
+> **The Simulation Logic:**
+> * Create a React state `data` array that stores an infinite sequence of results (e.g., 'heads', 'tails', 'heads', 'heads').
+> * Add an input slider `setFrequency` that determines how quickly the simulation runs (flips per second).
+> * Add a 'Mass Flip' button that adds 1,000 results instantly.
+>
+> **The Animation (Brilliant/Rive style):**
+> * Create a state-driven Y-axis rotation animation on a 'Coin' SVG. The speed of the animation must change based on the `setFrequency` slider value.
+> * If the user clicks 'Mass Flip,' make the coin spin rapidly in `emerald-500` before revealing the final Head/Tail counts.
+>
+> **The Analytics Panel:** Add a `slate-900` card showing: **Total Flips: X | P(Heads): Y | Heads Streak: Z**."
+
+***
+
+***
+
+## Recipe 3: The "Logic/Physics Playground" (Tactile Feedback)
+For courses like robotics, physics, or data structures, use this to make your interaction cards feel alive.
+
+> **Prompt:** "Design a 'Force & Motion Playground' component.
+>
+> **The Workspace:** A `slate-50` canvas with a central 'Robot' SVG.
+>
+> **Interactive Micro-Animations:** > * The user can drag 'Force Vectors' (arrows). As they drag, the arrow must scale and rotate. 
+> * When the user taps a vector, make it 'pulse' with an `emerald-400` glow to show it is selected.
+> * Use `whileTap={{ scale: 0.95 }}` on all drag-handles to mimic the physical feedback of Brilliant's animations.
+>
+> **Guided Observation:** Add a side-panel that updates based on the user's setup. If the forces are balanced, display a prompt in `emerald-600`: 'Notice how the object remains stationary because the net force is zero.'"
+
+***
+
+***
+
+## Why these prompts will work:
+* **The `z-index` Fix:** By specifying `relative z-50` for interactive elements, you ensure the mouse clicks are never blocked by background layers.
+* **Math-to-Pixels:** These prompts ask the AI to calculate a mathematical result first, then link that result to the properties (scale, rotate, color) of an SVG, creating deep, intuitive simulations.
+* **Conditional Rendering:** Using `isLabOpen ? <Lab /> : <Question />` logic in your prompts is the most stable way to build your "Compass" navigation bridge.

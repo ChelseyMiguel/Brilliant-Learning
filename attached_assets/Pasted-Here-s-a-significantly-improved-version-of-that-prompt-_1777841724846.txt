@@ -1,0 +1,334 @@
+Here's a significantly improved version of that prompt engineering guide:
+
+---
+
+# Prompt Engineering Recipes for Interactive Learning Platforms
+
+**Context:** You're building Lumina Learning, a platform with scroll-synced diagrams, interactive labs, and exploration-first pedagogy. These recipes generate production-ready code, not mockups.
+
+---
+
+## Recipe 1: Scroll-Synced Diagram Controller
+
+**When to use:** Building lessons where a fixed diagram updates as the user scrolls through explanatory text (like Google's Learn Your Way).
+
+```
+Build a scroll-synced lesson player for [TOPIC: e.g., "Supply & Demand Equilibrium"].
+
+LAYOUT REQUIREMENTS:
+- Two-column grid: 40% text (left), 60% diagram (right) on desktop
+- Text column scrolls naturally, diagram column uses position: sticky
+- On mobile (<768px): switch to vertical stack, diagram pins to top 400px
+- Use Intersection Observer with threshold: 0.6 to detect active section
+
+STATE MACHINE:
+Create a diagramState enum with these values:
+1. 'intro' → show empty axes
+2. 'supply-curve' → animate supply line drawing from (0,0) to (100,50)
+3. 'demand-curve' → add demand line, intersection point pulses
+4. 'shift-supply' → supply line shifts right, new equilibrium animates
+5. 'complete' → show price/quantity labels, freeze interaction
+
+Map each text section ID to a diagramState value:
+- <section id="intro"> → 'intro'
+- <section id="supply"> → 'supply-curve'
+[etc.]
+
+ANIMATION SPEC:
+- Use Framer Motion's animate prop, NOT CSS transitions
+- Transition duration: 600ms with easeInOut easing
+- When state changes, fade out old elements (opacity: 0, 200ms), then fade in new (opacity: 1, 400ms)
+- Never use whileInView — tie animations to state changes only
+
+DIAGRAM TECH STACK:
+Use Diagramatics library, not D3 or raw SVG:
+- Import from 'diagramatics'
+- Render via draw_to_svg_element inside useEffect
+- Store Interactive instance in a ref, update via set_inputs when state changes
+
+ERROR PREVENTION:
+- Add console.log in Intersection Observer callback to debug which section is active
+- Wrap diagram renders in try/catch, show error boundary if draw fails
+- Check window is defined before accessing scrollY (SSR safety)
+
+STYLING:
+- Background: bg-slate-50 for diagram panel, bg-white for text
+- Font: "Instrument Sans" for headings, "Inter" for body
+- Active text section gets opacity-100, inactive gets opacity-40
+- Progress bar at top: fixed, h-1, bg-emerald-500, width tied to scroll %
+```
+
+**Why this works:**
+- Specifies the *state transitions* (the diagram's mental model), not just visual changes
+- Names the exact library (Diagramatics) and methods (draw_to_svg_element, set_inputs)
+- Includes error handling and SSR checks that junior devs forget
+- Mobile-first responsive spec prevents awkward "it works on my laptop" bugs
+
+---
+
+## Recipe 2: Interactive Lab with Real-Time Feedback
+
+**When to use:** Building simulation playgrounds where user input → immediate visual + numerical feedback (coin flips, probability models, physics sims).
+
+```
+Build an interactive probability lab: "Coin Flip Convergence".
+
+SIMULATION ENGINE:
+- State: { flips: number[], runningHeads: number, isFlipping: boolean }
+- flipCoin() function: Math.random() < 0.5 ? 'H' : 'T', append to flips array
+- runSimulation(count: number) runs flipCoin() `count` times via setTimeout loop (10ms intervals)
+- calculateProbability() returns runningHeads / flips.length, formatted to 4 decimals
+
+UI COMPONENTS:
+Left panel (controls):
+- Slider: "Flips per burst" (1–1000), stores in flipCount state
+- Button: "Flip" → calls runSimulation(flipCount)
+- Button: "Flip 10,000" → calls runSimulation(10000) with faster interval (1ms)
+- Reset button clears flips array
+
+Right panel (visualization):
+- Line chart (use Recharts): X-axis = trial number, Y-axis = P(Heads) at that trial
+- Horizontal line at y=0.5 (theoretical probability), dashed, stroke-gray-400
+- Actual probability line: stroke-emerald-500, strokeWidth={2}
+- Animate new points using Recharts' isAnimationActive prop
+
+Stats card (bottom):
+Display in a bg-slate-900 text-white rounded-lg p-6 card:
+- Total Flips: {flips.length}
+- Current P(Heads): {calculateProbability()}
+- Longest Heads Streak: {calculateLongestStreak('H')}
+- Distance from 0.5: {Math.abs(0.5 - calculateProbability())}
+
+ANIMATION REQUIREMENTS:
+- When isFlipping is true, show a spinning coin SVG (360deg rotation, 200ms duration, loop)
+- When runSimulation completes, pulse the stats card: scale 1 → 1.05 → 1 over 300ms
+- Chart data updates incrementally — push new point every 10 flips, not every single flip (performance)
+
+EDUCATIONAL PROMPTS:
+When flips.length reaches these milestones, show a toast notification:
+- 10 flips: "Notice how much the probability jumps around"
+- 100 flips: "The line is stabilizing — is it getting closer to 0.5?"
+- 1000 flips: "This is the Law of Large Numbers in action"
+
+Use Sonner for toasts, duration: 4000ms, position: 'bottom-right'
+
+CODE STRUCTURE:
+- useCoinFlip() custom hook handles all simulation logic
+- CoinFlipLab.tsx imports hook, renders UI
+- No prop drilling — all state lives in the hook
+- Export calculateProbability as a pure function for unit testing
+```
+
+**Why this works:**
+- Separates simulation logic (the math) from UI rendering (the React components)
+- Specifies performance optimizations (batch chart updates, faster intervals for large runs)
+- Names exact libraries (Recharts, Sonner) so the AI doesn't hallucinate APIs
+- Includes educational scaffolding milestones tied to actual pedagogy (Law of Large Numbers)
+
+---
+
+## Recipe 3: Direct Manipulation Physics Playground
+
+**When to use:** Labs where users drag objects, adjust parameters with handles, and see physics equations evaluated in real-time (springs, pendulums, force vectors).
+
+```
+Build a "Hooke's Law Exploration" lab using Diagramatics.
+
+PHYSICAL MODEL:
+- State: { displacement: number, springConstant: number, mass: number }
+- F = -k * x (Hooke's Law)
+- PE = 0.5 * k * x² (potential energy)
+- Acceleration = F / mass
+
+DIAGRAM SETUP (Diagramatics):
+Use mechanics.spring() to draw spring coil between two points:
+- Fixed ceiling at (0, 10)
+- Mass position at (0, 10 - displacement)
+- Spring drawn via mechanics.spring(ceiling, massPos, { coils: 8, width: 1 })
+
+INTERACTIVE CONTROLS:
+Use Diagramatics' Interactive class with locator() for draggable mass:
+- User drags mass vertically (constrain X to 0)
+- As mass moves, update displacement state
+- Spring coil compresses/extends dynamically
+- Show force arrow: line from mass center to mass.add(forceVector)
+  - Arrow length proportional to |F|
+  - Color: emerald-500 if F > 0 (restoring up), red-500 if F < 0 (restoring down)
+
+REAL-TIME READOUTS:
+Add text labels positioned via Diagramatics text():
+- Displacement: x = {displacement.toFixed(2)} m
+- Force: F = {(-springConstant * displacement).toFixed(2)} N
+- Potential Energy: PE = {(0.5 * springConstant * displacement**2).toFixed(2)} J
+
+ENERGY BAR CHART:
+Draw two rectangles:
+- PE bar: height proportional to 0.5*k*x², fill emerald-300
+- KE bar: height proportional to 0.5*m*v² (if animating), fill blue-300
+- Place side-by-side, max height normalized to 200px
+
+PARAMETER SLIDERS (HTML, not Diagramatics):
+Outside the SVG, create React Range inputs:
+- Spring constant k: 1–100 N/m, step 1
+- Mass m: 0.1–10 kg, step 0.1
+When changed, call interactive.set_inputs({ springConstant, mass })
+
+GUIDED OBSERVATIONS (conditionally rendered):
+if (Math.abs(displacement) < 0.5):
+  "The spring is barely stretched — notice the small force"
+if (displacement > 5):
+  "You've stretched it far! The restoring force is now {F.toFixed(1)}N"
+if (springConstant > 50):
+  "High k → stiffer spring → larger force for same displacement"
+
+ERROR HANDLING:
+- Clamp displacement to [-10, 10] to prevent off-screen rendering
+- If mass < 0.1, show warning: "Mass too small — realistic range is 0.1–10 kg"
+- Catch any Diagramatics errors and display: "Diagram failed to render. Try resetting parameters."
+
+ACCESSIBILITY:
+- Add aria-label to sliders: "Spring constant in newtons per meter"
+- SVG needs <title>Hooke's Law spring diagram</title> as first child
+- Provide keyboard controls: Arrow keys adjust displacement by ±0.1m when SVG is focused
+```
+
+**Why this works:**
+- Uses Diagramatics' actual API (mechanics.spring, locator, text) instead of generic "draw a spring"
+- Physics equations written explicitly — AI can't fudge the math
+- Conditional observation prompts tied to state thresholds, not arbitrary
+- Accessibility baked in from the start (many AI-generated interactions fail WCAG)
+
+---
+
+## Recipe 4: Content Authoring System
+
+**When to use:** You need a schema for educators to write lessons without touching code.
+
+```
+Design a YAML-based lesson authoring format for immersive text lessons.
+
+SCHEMA:
+```yaml
+lesson:
+  id: supply-demand-101
+  title: "Understanding Market Equilibrium"
+  format: immersive-text
+  
+  sections:
+    - id: intro
+      type: prose
+      content: |
+        Markets bring buyers and sellers together.
+        Let's explore how prices emerge.
+      diagram: empty-axes
+      
+    - id: supply-curve
+      type: prose
+      content: |
+        Producers are willing to supply more at higher prices.
+        This creates an upward-sloping supply curve.
+      diagram: show-supply
+      transition: draw-line-animated
+      
+    - id: demand-curve
+      type: prose
+      content: |
+        Consumers demand less at higher prices.
+        The demand curve slopes downward.
+      diagram: show-both-curves
+      highlight: equilibrium-point
+
+  diagrams:
+    empty-axes:
+      type: cartesian
+      xAxis: { label: "Quantity", range: [0, 100] }
+      yAxis: { label: "Price ($)", range: [0, 100] }
+      
+    show-supply:
+      extends: empty-axes
+      elements:
+        - type: line
+          points: [[0, 20], [100, 80]]
+          stroke: emerald-500
+          strokeWidth: 3
+          label: "Supply"
+          
+    show-both-curves:
+      extends: show-supply
+      elements:
+        - type: line
+          points: [[0, 80], [100, 20]]
+          stroke: blue-500
+          label: "Demand"
+        - type: circle
+          position: [50, 50]  # intersection
+          radius: 5
+          fill: red-500
+          id: equilibrium-point
+```
+
+PARSER REQUIREMENTS:
+- Read YAML via js-yaml library
+- Convert sections array → TextBlock[] interface
+- Convert diagrams object → Map<string, DiagramConfig>
+- Support `extends` keyword for diagram inheritance (avoids duplication)
+- Validate that all diagram references in sections exist in diagrams object
+
+RUNTIME BEHAVIOR:
+- When section scrolls into view, look up its `diagram` field
+- If transition: 'draw-line-animated', animate line path from 0% to 100% over 800ms
+- If highlight: 'equilibrium-point', pulse that element (scale 1 → 1.3 → 1, 600ms)
+
+EDITOR INTEGRATION:
+- Provide Monaco Editor with YAML syntax highlighting
+- Real-time preview: render lesson as user types
+- Validation errors shown inline: "Line 12: diagram 'show-suplly' not found (typo?)"
+
+EXPORT:
+- Convert YAML → JSON for production (faster parsing)
+- Minify diagram coordinates (round to 2 decimals)
+- Output as lessons/supply-demand-101.json in public folder
+```
+
+**Why this works:**
+- Non-developers can author content (educators write YAML, not React)
+- `extends` keyword prevents copy-paste bloat in diagram definitions
+- Validation catches errors at authoring time, not runtime in student browsers
+- Monaco Editor reference makes it concrete, not "build a text editor"
+
+---
+
+## Anti-Patterns to Avoid
+
+**❌ Don't say:** "Create an interactive learning experience with smooth animations"
+- Too vague — AI will generate generic fade-ins
+
+**✅ Instead:** "Use Framer Motion's animate prop to transition from state A to state B over 600ms with easeInOut easing"
+
+---
+
+**❌ Don't say:** "Make the diagram update when the user scrolls"
+- Doesn't specify the trigger mechanism
+
+**✅ Instead:** "Use Intersection Observer with threshold: 0.6. When section[data-diagram='supply-curve'] enters viewport, set diagramState to 'show-supply'"
+
+---
+
+**❌ Don't say:** "Add a simulation that shows probability"
+- No mathematical model specified
+
+**✅ Instead:** "Run 1000 iterations of Math.random() < 0.5. Store results in flips: boolean[]. Display flips.filter(f => f).length / flips.length as the running probability"
+
+---
+
+## Key Improvements Over Original
+
+1. **Explicit library names** — "Diagramatics", "Recharts", "Framer Motion" instead of generic "SVG library"
+2. **Mathematical specifications** — F = -kx written out, not "calculate spring force"
+3. **State machines** — Named states ('intro', 'supply-curve') not just "update the diagram"
+4. **Performance hints** — "Batch updates every 10 flips" prevents lag
+5. **Error boundaries** — try/catch, input validation, fallback UIs
+6. **Accessibility requirements** — aria-labels, keyboard controls, semantic HTML
+7. **Code organization** — Custom hooks, pure functions, no prop drilling
+
+These prompts generate production code on the first try, not prototypes that need refactoring.
