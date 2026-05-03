@@ -27,7 +27,7 @@ export default function CoinFlipAnimation() {
     // After 1800° of spin, land at the correct face
     const spinAmount = 1800;
     const targetRotation = flipResult === "H" ? startRotation + spinAmount : startRotation + spinAmount + 180;
-    const targetDragY = 290;
+    const targetDragY = 400;
     const duration = 850;
     let t0: number | null = null;
 
@@ -91,7 +91,7 @@ export default function CoinFlipAnimation() {
     if (!isDragging.current || isFlipping) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const y = Math.max(0, Math.min(230, e.clientY - rect.top - 90));
+    const y = Math.max(0, Math.min(340, e.clientY - rect.top - 110));
     setDragY(y);
     setRotation(y * 8);
   };
@@ -102,7 +102,7 @@ export default function CoinFlipAnimation() {
     if (!isFlipping) {
       const currentY = dragY;
       const currentRot = rotation;
-      if (currentY > 70) {
+      if (currentY > 80) {
         runFlip(currentY, currentRot);
       } else {
         cancelRaf();
@@ -139,7 +139,7 @@ export default function CoinFlipAnimation() {
       {/* Drag area */}
       <div
         ref={containerRef}
-        className="relative h-[360px] overflow-hidden"
+        className="relative h-[500px] overflow-hidden"
         style={{ cursor: isFlipping ? "default" : isDragging.current ? "grabbing" : "grab" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -167,8 +167,8 @@ export default function CoinFlipAnimation() {
         >
           <div
             style={{
-              width: 92,
-              height: 92,
+              width: 120,
+              height: 120,
               position: "relative",
               transformStyle: "preserve-3d",
               transform: `rotateY(${rotation}deg)`,
@@ -186,14 +186,14 @@ export default function CoinFlipAnimation() {
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "column",
-                gap: 1,
+                gap: 2,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
-                boxShadow: "inset 0 3px 6px rgba(255,255,255,0.35), inset 0 -4px 8px rgba(0,0,0,0.2)",
+                boxShadow: "inset 0 4px 8px rgba(255,255,255,0.35), inset 0 -5px 10px rgba(0,0,0,0.2)",
               }}
             >
-              <span style={{ fontSize: 28, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>H</span>
-              <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em" }}>HEADS</span>
+              <span style={{ fontSize: 38, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>H</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: "0.12em" }}>HEADS</span>
             </div>
 
             {/* Tails face */}
@@ -207,15 +207,15 @@ export default function CoinFlipAnimation() {
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "column",
-                gap: 1,
+                gap: 2,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
                 transform: "rotateY(180deg)",
-                boxShadow: "inset 0 3px 6px rgba(255,255,255,0.3), inset 0 -4px 8px rgba(0,0,0,0.2)",
+                boxShadow: "inset 0 4px 8px rgba(255,255,255,0.3), inset 0 -5px 10px rgba(0,0,0,0.2)",
               }}
             >
-              <span style={{ fontSize: 28, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>T</span>
-              <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.65)", letterSpacing: "0.1em" }}>TAILS</span>
+              <span style={{ fontSize: 38, fontWeight: 800, color: "white", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>T</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.65)", letterSpacing: "0.12em" }}>TAILS</span>
             </div>
           </div>
         </div>

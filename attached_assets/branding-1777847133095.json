@@ -1,0 +1,139 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Google Sans",
+      "role": "heading"
+    },
+    {
+      "family": "Roboto",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#FF9064",
+    "secondary": "#CC0000",
+    "accent": "#FF9064",
+    "background": "#FFFFFF",
+    "textPrimary": "#000000",
+    "link": "#0000EE"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Roboto",
+      "heading": "Google Sans"
+    },
+    "fontStacks": {
+      "heading": [
+        "Google Sans",
+        "Roboto",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "body": [
+        "Google Sans",
+        "Roboto",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Google Sans",
+        "Roboto",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "32px",
+      "h2": "24px",
+      "body": "24px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "18px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#F7F1EA",
+      "textColor": "#252526",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#FFFFFF",
+      "textColor": "#363636",
+      "borderRadius": "20px",
+      "borderRadiusCorners": {
+        "topLeft": "20px",
+        "topRight": "20px",
+        "bottomRight": "20px",
+        "bottomLeft": "20px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "favicon": "https://learnyourway.withgoogle.com/static/favicon.svg",
+    "ogImage": null
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": -1,
+    "reasoning": "No suitable brand logo was found. The candidate appears to be a small UI icon rather than a main brand logo.",
+    "confidence": 0.2,
+    "rejected": true,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 6,
+      "text": "Learn Your Way",
+      "reasoning": "Button #1 with text 'Learn Your Way' is likely the primary CTA as it directly references the site's name, suggesting a central action or navigation point."
+    },
+    "secondary": {
+      "index": 0,
+      "text": "Restart quiz",
+      "reasoning": "Button #2 'Restart quiz' is a common secondary action, allowing users to retry an activity. It has a different background color group from the primary button."
+    },
+    "confidence": 0.9
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "students and educators"
+  },
+  "designSystem": {
+    "framework": "material",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.9,
+    "colors": 0.9,
+    "overall": 0.9
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": -1,
+        "selectedLogoReasoning": "No suitable brand logo was found. The candidate appears to be a small UI icon rather than a main brand logo.",
+        "confidence": 0.2
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

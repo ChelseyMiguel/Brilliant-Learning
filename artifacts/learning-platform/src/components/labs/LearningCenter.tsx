@@ -63,11 +63,11 @@ export default function LearningCenter({ lab, lessonTitle, onStartPractice }: Pr
             <p className="text-sm text-muted-foreground mt-1">{lab.subtitle}</p>
           </div>
 
-          <div className="flex-1 flex items-start justify-center px-4 pb-4 pt-2 overflow-y-auto">
-            <div className="w-full max-w-2xl bg-card rounded-2xl border border-border shadow-sm overflow-hidden p-4">
+          <div className="flex-1 flex items-start justify-center px-3 pb-3 pt-2 overflow-y-auto">
+            <div className="w-full bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
               <Suspense fallback={
-                <div className="space-y-3 p-4">
-                  <Skeleton className="h-48 w-full rounded-xl" />
+                <div className="space-y-3 p-6">
+                  <Skeleton className="h-64 w-full rounded-xl" />
                   <Skeleton className="h-8 w-3/4" />
                   <Skeleton className="h-8 w-1/2" />
                 </div>

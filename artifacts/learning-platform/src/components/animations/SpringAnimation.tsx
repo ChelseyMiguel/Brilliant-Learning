@@ -120,7 +120,6 @@ export default function SpringAnimation() {
         width="100%"
         viewBox="0 0 290 310"
         className="block"
-        style={{ maxHeight: 230 }}
       >
         {/* Ceiling hatch */}
         <rect x={CX - 46} y={0} width={92} height={CEILING_Y} rx={3} fill="#e2e8f0" />

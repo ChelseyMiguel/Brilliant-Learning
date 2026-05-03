@@ -1,0 +1,314 @@
+Looking at your Brilliant.org screenshots, your UI is already **very clean and well-executed**. However, here are specific improvements I'd recommend based on what makes Brilliant's UX exceptional:
+
+---
+
+## **Keep (What's Already Great)**
+
+✅ **Clean typography hierarchy** — Your headings are clear, body text readable  
+✅ **Generous whitespace** — Not cramped, breathing room around elements  
+✅ **Progress indicators** — "0/2 prompts opened" gives clear feedback  
+✅ **Card-based layout** — Course cards with icons work well  
+✅ **Minimal color palette** — You're not over-designing
+
+---
+
+## **Improve (Specific Changes)**
+
+### 1. **Pre-Practice "Think First" Flow (Image 1)**
+
+**Current issue:** The numbered steps (1. Think, 2. Explore, 3. Practice) feel static and disconnected.
+
+**Brilliant's approach:**
+- Each step is a **clickable card** that expands inline
+- Progress bar shows "1/3 steps completed"
+- You can't skip to Practice until Think and Explore are done
+
+**Specific fix:**
+```jsx
+// Replace static numbered circles with interactive progress cards
+<div className="space-y-3">
+  <ProgressCard 
+    number={1} 
+    title="Think" 
+    status={completed ? 'complete' : 'active'}
+    onClick={() => setActiveStep(1)}
+  >
+    {activeStep === 1 && (
+      <div className="mt-4 space-y-3">
+        <ThinkPrompt>What do you already know?</ThinkPrompt>
+        <ThinkPrompt>What would surprise you?</ThinkPrompt>
+      </div>
+    )}
+  </ProgressCard>
+  
+  <ProgressCard number={2} title="Explore" disabled={!step1Complete} />
+  <ProgressCard number={3} title="Practice" disabled={!step2Complete} />
+</div>
+```
+
+**Visual changes:**
+- Active step gets emerald-500 left border + slight scale(1.02)
+- Completed steps show green checkmark instead of number
+- Disabled steps are opacity-50 with lock icon
+- Clicking a step expands it accordion-style (Framer Motion `<AnimatePresence>`)
+
+---
+
+### 2. **Think Prompts Interaction (Right Panel)**
+
+**Current issue:** The prompts are just expandable cards. No feedback when you actually think through them.
+
+**Brilliant's approach:**
+- Prompts have text input or voice note option
+- You can't mark a prompt complete without engaging with it
+- Shows snippet of your response after you've written it
+
+**Specific fix:**
+```jsx
+const ThinkPrompt = ({ question, index, onComplete }) => {
+  const [response, setResponse] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <div className="border rounded-lg">
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+            response ? 'bg-emerald-500 text-white' : 'bg-slate-200'
+          }`}>
+            {response ? '✓' : index}
+          </div>
+          <span>{question}</span>
+        </div>
+        <ChevronDown className={isExpanded ? 'rotate-180' : ''} />
+      </button>
+      
+      {isExpanded && (
+        <div className="p-4 border-t space-y-3">
+          <textarea 
+            placeholder="Write your thoughts here..."
+            value={response}
+            onChange={(e) => setResponse(e.target.value)}
+            className="w-full p-3 border rounded-lg min-h-[100px]"
+          />
+          <button 
+            onClick={() => onComplete(response)}
+            disabled={!response}
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg disabled:opacity-50"
+          >
+            Save & Continue
+          </button>
+        </div>
+      )}
+      
+      {response && !isExpanded && (
+        <div className="px-4 pb-3 text-sm text-slate-600 italic">
+          "{response.slice(0, 60)}..."
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+**Why this matters:** Forces engagement, not just clicking through. Students who write even 1 sentence retain 3x better.
+
+---
+
+### 3. **Practice Question Layout (Image 2)**
+
+**Current issue:** Answer choices are too uniform. No visual hierarchy.
+
+**Brilliant's approach:**
+- Selected answer gets subtle emerald border + background tint
+- On "Check Answer", correct answer animates green, wrong shakes + turns red
+- Explanation panel slides up from bottom (not a separate page)
+
+**Specific fix:**
+```jsx
+const AnswerChoice = ({ letter, value, isSelected, isCorrect, isRevealed }) => (
+  <motion.button
+    onClick={() => selectAnswer(letter)}
+    disabled={isRevealed}
+    className={`
+      w-full p-4 rounded-lg border-2 text-left transition-all
+      ${isSelected && !isRevealed ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}
+      ${isRevealed && isCorrect ? 'border-green-500 bg-green-50' : ''}
+      ${isRevealed && isSelected && !isCorrect ? 'border-red-500 bg-red-50' : ''}
+    `}
+    animate={isRevealed && isSelected && !isCorrect ? {
+      x: [0, -10, 10, -10, 10, 0],
+    } : {}}
+    transition={{ duration: 0.4 }}
+  >
+    <div className="flex items-center gap-3">
+      <div className={`
+        w-8 h-8 rounded-full flex items-center justify-center font-semibold
+        ${isSelected ? 'bg-emerald-500 text-white' : 'bg-slate-100'}
+        ${isRevealed && isCorrect ? 'bg-green-500' : ''}
+        ${isRevealed && isSelected && !isCorrect ? 'bg-red-500' : ''}
+      `}>
+        {isRevealed && isCorrect ? '✓' : 
+         isRevealed && isSelected && !isCorrect ? '✗' : letter}
+      </div>
+      <span className="text-lg">{value}</span>
+    </div>
+  </motion.button>
+);
+
+// After "Check Answer" clicked:
+{isRevealed && (
+  <motion.div 
+    initial={{ y: 100, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    className="mt-6 p-6 bg-slate-50 rounded-lg"
+  >
+    <h3 className="font-semibold mb-2">
+      {isCorrect ? '🎉 Correct!' : '❌ Not quite'}
+    </h3>
+    <p className="text-slate-600">
+      The probability is 3/10 because there are 3 red marbles out of 10 total.
+    </p>
+  </motion.div>
+)}
+```
+
+**Visual changes:**
+- Selected answer → emerald border appears immediately (instant feedback)
+- Wrong answer shake animation (tactile feedback)
+- Explanation slides up smoothly, not a jarring page transition
+
+---
+
+### 4. **Course Cards (Image 3)**
+
+**Current issue:** Cards are functional but lack depth and interactivity.
+
+**Brilliant's approach:**
+- Hover → card lifts (scale + shadow increase)
+- Icon has subtle gradient background that matches course color
+- Progress ring around icon if course is started
+- "Recommended for you" badge on relevant courses
+
+**Specific fix:**
+```jsx
+const CourseCard = ({ course }) => (
+  <motion.div
+    whileHover={{ scale: 1.02, y: -4 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+    className="relative bg-white rounded-xl p-6 border border-slate-200 cursor-pointer shadow-sm hover:shadow-lg transition-shadow"
+  >
+    {/* Progress ring around icon */}
+    <div className="relative w-24 h-24 mb-4">
+      <svg className="absolute inset-0" viewBox="0 0 100 100">
+        <circle 
+          cx="50" cy="50" r="45" 
+          fill="none" 
+          stroke="#e2e8f0" 
+          strokeWidth="4" 
+        />
+        <circle 
+          cx="50" cy="50" r="45" 
+          fill="none" 
+          stroke="#10b981" 
+          strokeWidth="4"
+          strokeDasharray={`${course.progress * 2.83} 283`}
+          strokeLinecap="round"
+          transform="rotate(-90 50 50)"
+        />
+      </svg>
+      
+      <div className={`
+        absolute inset-2 rounded-full flex items-center justify-center
+        bg-gradient-to-br ${course.gradient}
+      `}>
+        <course.Icon className="w-10 h-10 text-white" />
+      </div>
+    </div>
+    
+    {/* Difficulty badge */}
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-xs font-semibold text-slate-500 uppercase">
+        {course.category}
+      </span>
+      <span className={`
+        text-xs font-semibold px-2 py-1 rounded-full
+        ${course.difficulty === 'beginner' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}
+      `}>
+        {course.difficulty}
+      </span>
+    </div>
+    
+    <h3 className="font-bold text-lg mb-2">{course.title}</h3>
+    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+      {course.description}
+    </p>
+    
+    <div className="flex items-center justify-between text-sm text-slate-500">
+      <span>{course.lessons} lessons</span>
+      <span className="font-semibold text-blue-600">{course.xp} XP</span>
+    </div>
+    
+    {/* Hover overlay */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      whileHover={{ opacity: 1 }}
+      className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent rounded-xl pointer-events-none"
+    />
+  </motion.div>
+);
+```
+
+**Visual changes:**
+- Progress ring around icon (shows 0-100% completion)
+- Card lifts on hover with spring animation
+- Difficulty badge color-coded (beginner=green, intermediate=blue)
+- Gradient overlay on hover adds depth
+
+---
+
+### 5. **Global Navigation & Breadcrumbs**
+
+**Missing in your screenshots:** Clear navigation showing where you are in the learning path.
+
+**Add this:**
+```jsx
+// At top of every lesson screen
+<Breadcrumbs>
+  <Breadcrumb href="/courses">Courses</Breadcrumb>
+  <Breadcrumb href="/courses/probability">Foundations of Probability</Breadcrumb>
+  <Breadcrumb active>Lesson 2: Basic Counting</Breadcrumb>
+</Breadcrumbs>
+
+// Shows: Courses > Foundations of Probability > Lesson 2: Basic Counting
+```
+
+Plus a persistent progress indicator in the header:
+```jsx
+<div className="fixed top-0 left-0 right-0 h-1 bg-slate-200 z-50">
+  <motion.div 
+    className="h-full bg-emerald-500"
+    style={{ width: `${lessonProgress}%` }}
+    transition={{ type: 'spring', stiffness: 100 }}
+  />
+</div>
+```
+
+---
+
+## **Summary: Priority Improvements**
+
+| Change | Impact | Effort |
+|--------|--------|--------|
+| 1. Interactive "Think First" cards | High — forces engagement | Medium |
+| 2. Text input for think prompts | High — better retention | Low |
+| 3. Answer choice animations | Medium — clearer feedback | Low |
+| 4. Course card hover effects | Low — polish | Low |
+| 5. Progress rings on icons | Medium — shows momentum | Medium |
+
+**Start with #1, #2, and #3** — those have the highest pedagogical impact.
+
+Your UI is already 80% of the way there. These tweaks push it from "clean and functional" to "Brilliant-level engaging."

@@ -141,15 +141,15 @@ export default function LessonIntro({ lesson, AnimationComponent, onStartPractic
             )}
           </div>
 
-          <div className="flex-1 flex items-start justify-center px-4 pb-4 pt-2 overflow-y-auto">
+          <div className="flex-1 flex items-start justify-center px-3 pb-3 pt-2 overflow-y-auto">
             {AnimationComponent ? (
-              <div className="w-full max-w-2xl bg-card rounded-2xl border border-border shadow-sm overflow-hidden p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <div className="w-full bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-5 pt-4 pb-0">
                   Interactive Simulation
                 </p>
                 <Suspense fallback={
-                  <div className="space-y-3">
-                    <Skeleton className="h-52 w-full rounded-xl" />
+                  <div className="space-y-3 p-5">
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   </div>
                 }>
                   <AnimationComponent />

@@ -40,7 +40,7 @@ export default function DiagramaticsInteractive({ setup, className = "" }: Props
       <svg
         ref={svgRef}
         className="w-full"
-        style={{ display: "block", overflow: "visible" }}
+        style={{ display: "block", overflow: "visible", minHeight: "420px" }}
       />
       <div
         ref={controlsRef}

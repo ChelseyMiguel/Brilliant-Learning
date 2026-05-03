@@ -1,0 +1,50 @@
+To build an immersive **Learning Center** that feels like Google’s "Learn Your Way" while keeping the **Lumina** aesthetic, you need to prompt for a **Scrollytelling** or **Interactive Narrative** architecture.
+
+This layout uses a sticky visual "Stage" that updates dynamically as the user scrolls through teaching text, allowing them to visualize concepts like the ones in your course cards (Atoms, Economics, or Data Structures) before they ever hit a practice question.
+
+***
+
+## 1. The "Immersive Narrative" Controller
+This is the master prompt to build the functional skeleton of a Google-style discovery page.
+
+> **Prompt:** "Act as a Senior Creative Developer. I need to build an 'Immersive Discovery Tab' for Lumina.
+>
+> **The Layout:**
+> * Create a two-column, desktop-first layout. 
+> * **Left Side:** A scrollable text container for the lesson narrative.
+> * **Right Side:** A fixed, sticky 'Visual Stage' (`slate-50` background) that contains interactive SVG simulations.
+>
+> **The Scroll-Sync Logic:**
+> * Use the `Intersection Observer API` to track paragraphs.
+> * As the user scrolls to **[Topic: e.g., Atoms]**, the Stage should show a 3D Bohr model. 
+> * When they scroll to a paragraph about 'Bonds,' the Stage should animate two atoms snapping together.
+>
+> **Styling:** Use the **Outfit** font and maintain a minimalist scientific aesthetic. Ensure the Stage has `pointer-events-auto` so users can 'poke' the simulation as they read."
+
+***
+
+## 2. Topic-Specific "Learning Lab" Prompts
+Use these to generate the actual interactive content for the cards shown in your screenshot.
+
+### For "Atoms and Molecules"
+> **Prompt:** "Design an interactive 'Atom Builder' sandbox. Users can drag protons, neutrons, and electrons into a central nucleus. As they add particles, the UI should dynamically update the Element Name (e.g., 'Hydrogen' to 'Helium') and the Atomic Mass. If the electron shells aren't balanced, make the atom 'vibrate' slightly in a `slate-300` glow to show instability."
+
+
+### For "Microeconomics"
+> **Prompt:** "Create a 'Market Equilibrium' simulation. Include two draggable curves: Supply (Emerald) and Demand (Slate). As the user moves the curves, show a real-time 'Equilibrium Point' labeled with LaTeX ($P^*, Q^*$). Add a 'Shock' button that simulates a sudden increase in demand, causing the curve to slide and the price to rise automatically."
+
+
+### For "Intro to Data Structures"
+> **Prompt:** "Build a 'Visual Array' playground. Show a row of 8 blocks. The user can toggle between 'Array' and 'Linked List' view. In 'Linked List' mode, show SVG arrows (vectors) connecting the blocks. When a user 'deletes' a block, animate the arrows rerouting to the next available block to show how memory pointers work."
+
+***
+
+## 3. The "Discovery to Practice" Bridge
+To make this feel cohesive, prompt for the transition that leads the student into the practice questions you already built.
+
+> **Prompt:** "Design a 'Checkpoint' component that appears at the end of an Immersive Narrative. 
+> * **Visual:** A large, centered emerald button that says 'Apply Your Knowledge.'
+> * **Logic:** When clicked, it should transition the page into the 'Practice Card' view.
+> * **State-Carry:** Ensure the final state of the simulation from the Learning Center (e.g., the specific atom the user built) stays visible in the corner of the practice card as a reference."
+
+**Which of your existing cards should we turn into an immersive lesson first?** The "Atoms and Molecules" or "Microeconomics" tracks would be perfect for this scrollytelling format.
