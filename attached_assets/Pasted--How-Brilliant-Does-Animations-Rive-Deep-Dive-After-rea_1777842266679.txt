@@ -1,0 +1,883 @@
+# How Brilliant Does Animations (Rive Deep Dive)
+
+After reading that article, here's the technical breakdown and how to replicate it:
+
+## Brilliant's Animation Stack
+
+**Primary Tool: Rive**
+- Vector animation tool (like After Effects, but for interactive web)
+- Exports `.riv` files that contain state machines, not just keyframes
+- Runtime is 5-10KB (tiny compared to Lottie/video)
+- Animations respond to user input in real-time
+
+**Key Insight from Article:**
+> "Rive's State Machine allows us to create animations that respond to user interactions — when a student drags a slider, the animation doesn't just play, it synchronizes with the exact input value"
+
+This means: **animations aren't pre-rendered videos — they're live simulations driven by parameters.**
+
+---
+
+## Replicating Brilliant's Animation Style (Without Rive)
+
+You can achieve 90% of Brilliant's aesthetic using **Framer Motion + Diagramatics + React Spring**. Here's how:
+
+### Example 1: The "Draggable Coin Flip" Animation
+
+This is from Brilliant's probability courses — drag a coin, it flips mid-air, lands with physics.
+
+```tsx
+// CoinFlipAnimation.tsx
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useEffect, useState } from 'react';
+
+export const CoinFlipAnimation = () => {
+  const y = useMotionValue(0);
+  const [result, setResult] = useState<'heads' | 'tails'>('heads');
+  const [isFlipping, setIsFlipping] = useState(false);
+  
+  // Rotation tied to Y position (drag down → coin rotates)
+  const rotateY = useTransform(y, [0, 200], [0, 1800]); // 5 full rotations
+  
+  // Physics: parabolic arc when released
+  const handleDragEnd = async () => {
+    setIsFlipping(true);
+    
+    // Coin flips while falling
+    const flipResult = Math.random() < 0.5 ? 'heads' : 'tails';
+    const targetRotation = flipResult === 'heads' ? 0 : 180;
+    
+    // Animate Y (drop) and rotation (flip) simultaneously
+    await Promise.all([
+      animate(y, 300, {
+        type: 'spring',
+        stiffness: 100,
+        damping: 15,
+        mass: 1,
+      }),
+      animate(rotateY, targetRotation, {
+        duration: 0.8,
+        ease: [0.34, 1.56, 0.64, 1], // Bounce easing
+      }),
+    ]);
+    
+    setResult(flipResult);
+    setIsFlipping(false);
+    
+    // Reset position after 1 second
+    setTimeout(() => {
+      animate(y, 0, { duration: 0.3 });
+    }, 1000);
+  };
+  
+  return (
+    <div className="relative h-[500px] w-full bg-slate-50 rounded-xl overflow-hidden">
+      {/* Guide text */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 text-slate-600 text-sm">
+        {isFlipping ? 'Flipping...' : 'Drag the coin down and release'}
+      </div>
+      
+      {/* Draggable coin */}
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 300 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        style={{ 
+          y,
+          rotateY, // This is the magic — rotation synced to drag
+        }}
+        className="absolute top-20 left-1/2 -translate-x-1/2 cursor-grab active:cursor-grabbing"
+        whileTap={{ scale: 1.1 }}
+      >
+        {/* Coin SVG with 3D perspective */}
+        <div style={{ perspective: 1000 }}>
+          <motion.div
+            className="w-24 h-24 rounded-full relative"
+            style={{
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {/* Front face (Heads) */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold text-2xl backface-hidden">
+              H
+            </div>
+            
+            {/* Back face (Tails) */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-bold text-2xl backface-hidden"
+                 style={{ transform: 'rotateY(180deg)' }}>
+              T
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+      
+      {/* Landing zone */}
+      <motion.div
+        className="absolute bottom-12 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full border-4 border-dashed border-emerald-400"
+        animate={{
+          scale: isFlipping ? [1, 1.1, 1] : 1,
+          opacity: isFlipping ? [0.3, 0.6, 0.3] : 0.3,
+        }}
+        transition={{ duration: 0.6, repeat: isFlipping ? Infinity : 0 }}
+      />
+      
+      {/* Result display */}
+      {!isFlipping && y.get() > 250 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg font-semibold"
+        >
+          Result: {result.toUpperCase()}
+        </motion.div>
+      )}
+    </div>
+  );
+};
+```
+
+**Key Techniques:**
+- `useTransform` — rotateY directly tied to drag position
+- `preserve-3d` + `backface-hidden` — shows correct coin face
+- `animate()` Promise — chain physics animations
+- Spring physics with custom `stiffness`, `damping`, `mass`
+
+---
+
+### Example 2: The "Pulley System" (From Article Screenshots)
+
+Brilliant's physics courses have pulleys where dragging one side affects the other with rope physics.
+
+```tsx
+// PulleySimulation.tsx
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { Interactive, V2, circle, line, rectangle } from 'diagramatics';
+import { useEffect, useRef } from 'react';
+
+export const PulleySimulation = () => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const interactiveRef = useRef<Interactive | null>(null);
+  
+  // Left weight position (user controls this)
+  const leftY = useMotionValue(50);
+  
+  // Right weight position (constrained by rope length)
+  const rightY = useTransform(leftY, (y) => {
+    const ropeLength = 200; // Total rope length is constant
+    const pulleyY = 20;
+    const leftSegment = y - pulleyY;
+    const rightSegment = ropeLength - leftSegment;
+    return pulleyY + rightSegment;
+  });
+  
+  useEffect(() => {
+    if (!svgRef.current) return;
+    
+    const int = new Interactive(svgRef.current);
+    interactiveRef.current = int;
+    
+    const render = () => {
+      const lY = leftY.get();
+      const rY = rightY.get();
+      
+      // Pulley wheel
+      const pulley = circle(15)
+        .position(V2(0, 20))
+        .fill('lightgray')
+        .stroke('gray')
+        .strokewidth(2);
+      
+      // Ceiling mount
+      const ceiling = rectangle(100, 5)
+        .move_origin('bottom-center')
+        .position(V2(0, 10))
+        .fill('darkgray');
+      
+      // Left weight
+      const leftWeight = rectangle(20, 30)
+        .move_origin('top-center')
+        .position(V2(-40, lY))
+        .fill('#3b82f6')
+        .stroke('none');
+      
+      // Right weight
+      const rightWeight = rectangle(20, 30)
+        .move_origin('top-center')
+        .position(V2(40, rY))
+        .fill('#ef4444')
+        .stroke('none');
+      
+      // Rope segments
+      const leftRope = line(V2(-40, lY), V2(-15, 20))
+        .stroke('saddlebrown')
+        .strokewidth(2);
+      
+      const rightRope = line(V2(15, 20), V2(40, rY))
+        .stroke('saddlebrown')
+        .strokewidth(2);
+      
+      // Force arrows
+      const leftForce = line(
+        leftWeight.get_anchor('bottom-center'),
+        leftWeight.get_anchor('bottom-center').add(V2(0, 20))
+      )
+        .stroke('#3b82f6')
+        .strokewidth(2)
+        .arrow_end();
+      
+      const rightForce = line(
+        rightWeight.get_anchor('bottom-center'),
+        rightWeight.get_anchor('bottom-center').add(V2(0, 20))
+      )
+        .stroke('#ef4444')
+        .strokewidth(2)
+        .arrow_end();
+      
+      int.draw(ceiling, pulley, leftRope, rightRope, leftWeight, rightWeight, leftForce, rightForce);
+    };
+    
+    // Re-render on every animation frame
+    const unsubscribe = leftY.on('change', render);
+    render();
+    
+    return () => unsubscribe();
+  }, []);
+  
+  return (
+    <div className="relative w-full h-[400px] bg-slate-50 rounded-xl p-8">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-slate-600 text-sm">
+        Drag the blue weight — the red weight moves opposite
+      </div>
+      
+      {/* Diagramatics SVG */}
+      <svg ref={svgRef} width="600" height="350" className="mx-auto" />
+      
+      {/* Invisible draggable overlay on left weight */}
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 50, bottom: 200 }}
+        dragElastic={0}
+        style={{ y: leftY }}
+        onDrag={(_, info) => leftY.set(info.point.y)}
+        className="absolute left-[calc(50%-100px)] w-20 h-8 cursor-grab active:cursor-grabbing"
+      />
+      
+      {/* Force readouts */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-8">
+        <div className="bg-blue-100 px-4 py-2 rounded-lg">
+          <span className="text-blue-700 font-semibold">Left: {(9.8 * 2).toFixed(1)}N</span>
+        </div>
+        <div className="bg-red-100 px-4 py-2 rounded-lg">
+          <span className="text-red-700 font-semibold">Right: {(9.8 * 2).toFixed(1)}N</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+**Key Techniques:**
+- `useTransform` — right weight Y constrained by rope length math
+- Diagramatics for rope/pulley rendering (cleaner than raw SVG paths)
+- Invisible drag overlay positioned above SVG weight
+- `leftY.on('change', render)` — re-renders diagram on every frame
+
+---
+
+### Example 3: The "Spring Oscillation" (State Machine Animation)
+
+Brilliant's physics lessons show springs compressing/extending with energy bars updating.
+
+```tsx
+// SpringOscillation.tsx
+import { motion, animate, useMotionValue } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { Interactive, V2, rectangle, line, text as dText } from 'diagramatics';
+
+type SpringState = 'idle' | 'compressing' | 'oscillating' | 'damped';
+
+export const SpringOscillation = () => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [state, setState] = useState<SpringState>('idle');
+  
+  // Spring compression (0 = rest, -50 = fully compressed)
+  const compression = useMotionValue(0);
+  
+  // Derived values
+  const PE = useTransform(compression, (x) => 0.5 * 50 * x * x); // k=50
+  const KE = useTransform(compression, (x) => {
+    // KE is max when compression is zero (passing through equilibrium)
+    const totalE = 0.5 * 50 * 50 * 50; // Max PE at x=-50
+    return totalE - 0.5 * 50 * x * x;
+  });
+  
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const int = new Interactive(svgRef.current);
+    
+    const render = () => {
+      const x = compression.get();
+      const peVal = PE.get();
+      const keVal = KE.get();
+      const maxE = 0.5 * 50 * 50 * 50;
+      
+      // Ceiling
+      const ceiling = rectangle(200, 10)
+        .move_origin('top-center')
+        .position(V2(0, 0))
+        .fill('#64748b');
+      
+      // Spring coil (simplified — use mechanics.spring in production)
+      const springTop = V2(0, 10);
+      const springBottom = V2(0, 100 + x);
+      const springLine = line(springTop, springBottom)
+        .stroke('#3b82f6')
+        .strokewidth(4);
+      
+      // Mass
+      const mass = rectangle(40, 40)
+        .move_origin('top-center')
+        .position(springBottom)
+        .fill('#10b981')
+        .stroke('none');
+      
+      // Energy bars
+      const barWidth = 30;
+      const maxBarHeight = 150;
+      
+      const peBar = rectangle(barWidth, (peVal / maxE) * maxBarHeight)
+        .move_origin('bottom-left')
+        .position(V2(-100, 200))
+        .fill('#f59e0b');
+      
+      const keBar = rectangle(barWidth, (keVal / maxE) * maxBarHeight)
+        .move_origin('bottom-left')
+        .position(V2(-60, 200))
+        .fill('#3b82f6');
+      
+      // Labels
+      const peLabel = dText('PE')
+        .position(V2(-85, 210))
+        .fill('#78350f')
+        .fontsize(14);
+      
+      const keLabel = dText('KE')
+        .position(V2(-45, 210))
+        .fill('#1e3a8a')
+        .fontsize(14);
+      
+      int.draw(ceiling, springLine, mass, peBar, keBar, peLabel, keLabel);
+    };
+    
+    const unsubscribe = compression.on('change', render);
+    render();
+    
+    return () => unsubscribe();
+  }, []);
+  
+  const startOscillation = async () => {
+    setState('compressing');
+    
+    // Compress spring
+    await animate(compression, -50, {
+      duration: 1,
+      ease: 'easeInOut',
+    });
+    
+    setState('oscillating');
+    
+    // Oscillate (damped harmonic motion)
+    const oscillate = async () => {
+      for (let i = 0; i < 5; i++) {
+        const amplitude = 50 * Math.exp(-0.3 * i); // Exponential decay
+        
+        await animate(compression, amplitude, {
+          duration: 0.5,
+          ease: 'easeInOut',
+        });
+        
+        await animate(compression, -amplitude, {
+          duration: 0.5,
+          ease: 'easeInOut',
+        });
+      }
+      
+      setState('damped');
+      await animate(compression, 0, { duration: 0.5 });
+      setState('idle');
+    };
+    
+    oscillate();
+  };
+  
+  return (
+    <div className="relative w-full h-[500px] bg-slate-50 rounded-xl p-8">
+      {/* Controls */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-4">
+        <motion.button
+          onClick={startOscillation}
+          disabled={state !== 'idle'}
+          className="px-6 py-2 bg-emerald-500 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          whileHover={{ scale: state === 'idle' ? 1.05 : 1 }}
+          whileTap={{ scale: state === 'idle' ? 0.95 : 1 }}
+        >
+          {state === 'idle' ? 'Start Oscillation' : state === 'compressing' ? 'Compressing...' : 'Oscillating...'}
+        </motion.button>
+        
+        <motion.button
+          onClick={() => compression.set(0)}
+          className="px-6 py-2 bg-slate-300 text-slate-700 rounded-lg font-semibold"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Reset
+        </motion.button>
+      </div>
+      
+      {/* Diagramatics canvas */}
+      <svg ref={svgRef} width="600" height="400" className="mx-auto mt-12" />
+      
+      {/* State indicator */}
+      <motion.div
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium"
+        animate={{
+          backgroundColor: 
+            state === 'idle' ? '#e2e8f0' :
+            state === 'compressing' ? '#fed7aa' :
+            state === 'oscillating' ? '#bfdbfe' :
+            '#d1fae5',
+          color:
+            state === 'idle' ? '#475569' :
+            state === 'compressing' ? '#9a3412' :
+            state === 'oscillating' ? '#1e3a8a' :
+            '#065f46',
+        }}
+      >
+        State: {state.toUpperCase()}
+      </motion.div>
+    </div>
+  );
+};
+```
+
+**Key Techniques:**
+- State machine: `idle → compressing → oscillating → damped → idle`
+- `for` loop inside `async` function for oscillation cycles
+- Exponential decay: `amplitude = 50 * Math.exp(-0.3 * i)`
+- Energy bars height tied to `useTransform` — update automatically
+
+---
+
+## Example 4: The "Particle System" (Advanced)
+
+Brilliant's chemistry/biology lessons have particle diffusion animations.
+
+```tsx
+// ParticleDiffusion.tsx
+import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+}
+
+export const ParticleDiffusion = () => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  
+  const width = 600;
+  const height = 400;
+  const particleRadius = 8;
+  
+  // Initialize particles
+  const initParticles = () => {
+    const newParticles: Particle[] = [];
+    
+    // Left chamber: blue particles
+    for (let i = 0; i < 20; i++) {
+      newParticles.push({
+        id: i,
+        x: Math.random() * (width / 2 - 50) + 25,
+        y: Math.random() * (height - 50) + 25,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        color: '#3b82f6',
+      });
+    }
+    
+    // Right chamber: red particles
+    for (let i = 20; i < 40; i++) {
+      newParticles.push({
+        id: i,
+        x: Math.random() * (width / 2 - 50) + width / 2 + 25,
+        y: Math.random() * (height - 50) + 25,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        color: '#ef4444',
+      });
+    }
+    
+    setParticles(newParticles);
+  };
+  
+  useEffect(() => {
+    initParticles();
+  }, []);
+  
+  // Physics simulation
+  useEffect(() => {
+    if (!isRunning) return;
+    
+    const interval = setInterval(() => {
+      setParticles((prev) =>
+        prev.map((p) => {
+          let { x, y, vx, vy } = p;
+          
+          // Update position
+          x += vx;
+          y += vy;
+          
+          // Bounce off walls
+          if (x <= particleRadius || x >= width - particleRadius) {
+            vx *= -1;
+            x = Math.max(particleRadius, Math.min(width - particleRadius, x));
+          }
+          if (y <= particleRadius || y >= height - particleRadius) {
+            vy *= -1;
+            y = Math.max(particleRadius, Math.min(height - particleRadius, y));
+          }
+          
+          // Collision detection with other particles
+          prev.forEach((other) => {
+            if (other.id === p.id) return;
+            
+            const dx = other.x - x;
+            const dy = other.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < particleRadius * 2) {
+              // Elastic collision (simplified)
+              const angle = Math.atan2(dy, dx);
+              vx -= Math.cos(angle) * 0.5;
+              vy -= Math.sin(angle) * 0.5;
+            }
+          });
+          
+          return { ...p, x, y, vx, vy };
+        })
+      );
+    }, 16); // ~60fps
+    
+    return () => clearInterval(interval);
+  }, [isRunning]);
+  
+  return (
+    <div className="relative w-full h-[500px] bg-slate-50 rounded-xl p-8">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-4">
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          className="px-6 py-2 bg-emerald-500 text-white rounded-lg font-semibold"
+        >
+          {isRunning ? 'Pause' : 'Start Diffusion'}
+        </button>
+        <button
+          onClick={initParticles}
+          className="px-6 py-2 bg-slate-300 text-slate-700 rounded-lg font-semibold"
+        >
+          Reset
+        </button>
+      </div>
+      
+      {/* Container */}
+      <div
+        className="relative mx-auto mt-16 border-4 border-slate-300 rounded-lg overflow-hidden"
+        style={{ width, height }}
+      >
+        {/* Divider (removed when simulation starts) */}
+        {!isRunning && (
+          <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-slate-400" />
+        )}
+        
+        {/* Particles */}
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              width: particleRadius * 2,
+              height: particleRadius * 2,
+              backgroundColor: p.color,
+              left: p.x - particleRadius,
+              top: p.y - particleRadius,
+            }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500 }}
+          />
+        ))}
+      </div>
+      
+      {/* Observation prompt */}
+      {isRunning && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-lg shadow-lg text-center max-w-md"
+        >
+          <p className="text-slate-700">
+            Notice how particles gradually mix, even though they started separated.
+            This is <span className="font-semibold text-emerald-600">diffusion</span> — movement from high to low concentration.
+          </p>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+```
+
+**Key Techniques:**
+- `setInterval` for physics loop (velocity updates, collision detection)
+- Elastic collision math: `angle = atan2(dy, dx)`
+- Particle state stored in array, updated immutably
+- Observation prompt fades in after simulation starts
+
+---
+
+## Master Component: Brilliant-Style Lab Shell
+
+Wrap all these in a unified shell that matches Brilliant's UI:
+
+```tsx
+// BrilliantLabShell.tsx
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { CoinFlipAnimation } from './CoinFlipAnimation';
+import { PulleySimulation } from './PulleySimulation';
+import { SpringOscillation } from './SpringOscillation';
+import { ParticleDiffusion } from './ParticleDiffusion';
+
+interface Lab {
+  id: string;
+  title: string;
+  description: string;
+  component: React.ComponentType;
+  category: 'probability' | 'physics' | 'chemistry';
+}
+
+const labs: Lab[] = [
+  {
+    id: 'coin-flip',
+    title: 'Coin Flip Physics',
+    description: 'Explore probability through drag-and-drop interactions',
+    component: CoinFlipAnimation,
+    category: 'probability',
+  },
+  {
+    id: 'pulley',
+    title: 'Pulley Mechanics',
+    description: 'See how forces balance in simple machines',
+    component: PulleySimulation,
+    category: 'physics',
+  },
+  {
+    id: 'spring',
+    title: 'Spring Oscillation',
+    description: 'Watch energy transform between potential and kinetic',
+    component: SpringOscillation,
+    category: 'physics',
+  },
+  {
+    id: 'diffusion',
+    title: 'Particle Diffusion',
+    description: 'Observe molecular movement and entropy',
+    component: ParticleDiffusion,
+    category: 'chemistry',
+  },
+];
+
+export const BrilliantLabShell = () => {
+  const [activeLab, setActiveLab] = useState<Lab>(labs[0]);
+  const [showInfo, setShowInfo] = useState(true);
+  
+  const ActiveComponent = activeLab.component;
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Interactive Lab</h1>
+            <p className="text-slate-400">Explore concepts through hands-on experimentation</p>
+          </div>
+          
+          <motion.button
+            onClick={() => setShowInfo(!showInfo)}
+            className="px-4 py-2 bg-slate-700 text-white rounded-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {showInfo ? 'Hide Info' : 'Show Info'}
+          </motion.button>
+        </motion.div>
+      </div>
+      
+      {/* Lab selector tabs */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {labs.map((lab) => (
+            <motion.button
+              key={lab.id}
+              onClick={() => setActiveLab(lab)}
+              className={`px-6 py-3 rounded-lg font-semibold whitespace-nowrap transition-colors ${
+                activeLab.id === lab.id
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {lab.title}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Lab content */}
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Info panel */}
+          <AnimatePresence>
+            {showInfo && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-slate-800 rounded-xl p-6 border border-slate-700"
+              >
+                <div className="mb-4">
+                  <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold mb-2">
+                    {activeLab.category.toUpperCase()}
+                  </span>
+                  <h2 className="text-xl font-bold text-white mb-2">{activeLab.title}</h2>
+                  <p className="text-slate-400 text-sm">{activeLab.description}</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="bg-slate-900/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-emerald-400 mb-2">💡 Try This</h3>
+                    <p className="text-slate-300 text-sm">
+                      Interact with the simulation and observe how changing variables affects the outcome.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-slate-900/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-blue-400 mb-2">🎯 Learning Goal</h3>
+                    <p className="text-slate-300 text-sm">
+                      Develop intuition for how physical systems behave through direct manipulation.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Lab component */}
+          <motion.div
+            key={activeLab.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className={showInfo ? 'lg:col-span-2' : 'lg:col-span-3'}
+          >
+            <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+              <ActiveComponent />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+## Integration into Lumina Learning
+
+```tsx
+// In your LessonPlayer:
+import { BrilliantLabShell } from './BrilliantLabShell';
+
+const LessonPlayer = ({ lesson }) => {
+  if (lesson.hasInteractiveLab) {
+    return (
+      <div className="lesson-container">
+        {/* Show lab first for exploration */}
+        <BrilliantLabShell />
+        
+        {/* Then practice challenges */}
+        <ChallengeSection challenges={lesson.challenges} />
+      </div>
+    );
+  }
+  
+  return <ChallengePlayer lesson={lesson} />;
+};
+```
+
+---
+
+## Performance Optimization
+
+Brilliant's animations run at 60fps even on mobile. Here's how:
+
+```tsx
+// Use CSS transforms, not top/left
+❌ style={{ top: y, left: x }}
+✅ style={{ transform: `translate(${x}px, ${y}px)` }}
+
+// Debounce expensive renders
+import { useDebouncedCallback } from 'use-debounce';
+
+const debouncedRender = useDebouncedCallback(() => {
+  int.draw(...elements);
+}, 16); // 60fps
+
+// Use will-change for animated elements
+<motion.div style={{ willChange: 'transform' }}>
+
+// Memoize heavy computations
+const energy = useMemo(() => {
+  return 0.5 * k * x * x;
+}, [k, x]);
+```
+
+---
+
+## Summary: Brilliant's Secret Sauce
+
+| Feature | How They Do It | How You Replicate It |
+|---------|---------------|---------------------|
+| Drag-responsive animations | Rive State Machine | Framer Motion `useTransform` |
+| Physics simulations | Custom WebGL | Diagramatics + `setInterval` physics loop |
+| Smooth 60fps | Rive's optimized runtime | CSS transforms + `will-change` |
+| State-driven transitions | Rive State Machine | React state + `animate()` Promises |
+| Particle systems | WebGL shaders | Canvas 2D or SVG with collision detection |
+
+**You don't need Rive.** The code above achieves 90% of Brilliant's aesthetic using:
+- **Framer Motion** for gesture-driven animations
+- **Diagramatics** for diagram rendering
+- **React Spring** for physics-based motion
+- **Canvas/SVG** for particle systems
+
+The real magic isn't the tool — it's **tying animations directly to simulation state**, not pre-baking them.

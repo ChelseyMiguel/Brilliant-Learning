@@ -5,6 +5,7 @@ export const LAB_COMPONENTS = {
   SpringLab: lazy(() => import("./SpringLab")),
   AreaModelLab: lazy(() => import("./AreaModelLab")),
   NeuralNetLab: lazy(() => import("./NeuralNetLab")),
+  PulleyLab: lazy(() => import("./PulleyLab")),
 } as const;
 
 export type LabKey = keyof typeof LAB_COMPONENTS;
@@ -107,6 +108,28 @@ export const LESSON_LABS: Record<number, LessonLab> = {
       },
     ],
     bridgePrompt: "You've traced a signal and broken it on purpose — now let's formalize what you observed.",
+  },
+
+  // Lesson 20: Forces and Acceleration — single fixed pulley
+  20: {
+    labKey: "PulleyLab",
+    title: "Pulley Forces Lab",
+    subtitle: "A rope over a wheel — drag the slider and watch what happens on the other side.",
+    steps: [
+      {
+        heading: "Pull the rope all the way down",
+        body: "Drag the slider to its maximum. How far did the load rise? Compare it to how far you pulled. Is there any difference in distance?",
+      },
+      {
+        heading: "Notice the direction change",
+        body: "You pulled downward — the load moved upward. How does a pulley 'redirect' the force without changing how much force is needed?",
+      },
+      {
+        heading: "Think about effort vs load",
+        body: "In this single fixed pulley, F_effort = F_load. Can you think of a pulley arrangement where you'd need less force? What would have to change?",
+      },
+    ],
+    bridgePrompt: "You've seen how a pulley redirects force — now let's put Newton's second law to work.",
   },
 
   // Lesson 21: Springs & Oscillation

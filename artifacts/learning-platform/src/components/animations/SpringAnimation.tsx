@@ -1,145 +1,317 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
+const CX = 130;     // spring horizontal centre in viewBox
+const CEILING_Y = 24;
+const EQUILIBRIUM_Y = 210; // rest position of top of mass
+const MASS_SIZE = 40;
+const COILS = 10;
+const COIL_W = 16;
+
+function buildSpringPath(top: number, bottom: number): string {
+  const len = Math.max(bottom - top, 1);
+  const lead = 6; // straight lead-in/out
+  let d = `M ${CX} ${top} L ${CX} ${top + lead}`;
+
+  for (let i = 0; i < COILS; i++) {
+    const segLen = (len - lead * 2) / COILS;
+    const y0 = top + lead + i * segLen;
+    const y1 = y0 + segLen;
+    const xSign = i % 2 === 0 ? 1 : -1;
+    // S-shaped bezier for each coil
+    d += ` C ${CX + xSign * COIL_W * 2} ${y0 + segLen * 0.2}
+             ${CX + xSign * COIL_W * 2} ${y1 - segLen * 0.2}
+             ${CX} ${y1}`;
+  }
+
+  d += ` L ${CX} ${bottom}`;
+  return d;
+}
+
 export default function SpringAnimation() {
   const [k, setK] = useState(50);
   const [mass, setMass] = useState(1);
   const [running, setRunning] = useState(false);
-  const [x, setX] = useState(0);
-  const [v, setV] = useState(0);
-  const timeRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number | null>(null);
+  const [displacement, setDisplacement] = useState(0); // px from equilibrium
+  const [velocity, setVelocity] = useState(0);
 
-  const amplitude = 80;
-  const omega = Math.sqrt(k / mass);
-  const period = ((2 * Math.PI) / omega).toFixed(2);
+  const rafRef = useRef<number | null>(null);
+  const lastTsRef = useRef<number | null>(null);
+  const stateRef = useRef({ displacement: 0, velocity: 0, k, mass });
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    stateRef.current = { ...stateRef.current, k, mass };
+  }, [k, mass]);
 
   useEffect(() => {
     if (!running) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTsRef.current = null;
       return;
     }
-    const step = (timestamp: number) => {
-      if (lastTimeRef.current === null) lastTimeRef.current = timestamp;
-      const dt = Math.min((timestamp - lastTimeRef.current) / 1000, 0.05);
-      lastTimeRef.current = timestamp;
-      timeRef.current += dt;
-      const newX = amplitude * Math.cos(omega * timeRef.current);
-      setX(newX);
-      setV(-amplitude * omega * Math.sin(omega * timeRef.current));
+
+    const step = (ts: number) => {
+      if (lastTsRef.current === null) lastTsRef.current = ts;
+      const dt = Math.min((ts - lastTsRef.current) / 1000, 0.04);
+      lastTsRef.current = ts;
+
+      const { displacement: x, velocity: v, k: kVal, mass: mVal } = stateRef.current;
+      // Damped SHM: a = (-k/m)*x - damping*v
+      const omega2 = kVal / mVal;
+      const damping = 0.08;
+      const a = -omega2 * (x / 80) - damping * v; // x normalised to [-1,1]
+      const newV = v + a * dt;
+      const newX = x + newV * 80 * dt; // back to px
+      const clamped = Math.max(-70, Math.min(70, newX));
+
+      stateRef.current = { ...stateRef.current, displacement: clamped, velocity: newV };
+      setDisplacement(clamped);
+      setVelocity(newV);
       rafRef.current = requestAnimationFrame(step);
     };
+
     rafRef.current = requestAnimationFrame(step);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [running, k, mass, omega]);
+  }, [running]);
 
   const toggle = () => {
     if (!running) {
-      timeRef.current = 0;
-      lastTimeRef.current = null;
+      // Give it an initial kick
+      stateRef.current = { ...stateRef.current, displacement: -55, velocity: 0 };
+      setDisplacement(-55);
+      setVelocity(0);
     }
-    setRunning(r => !r);
+    setRunning((r) => !r);
   };
 
   const reset = () => {
     setRunning(false);
-    timeRef.current = 0;
-    lastTimeRef.current = null;
-    setX(0);
-    setV(0);
+    stateRef.current = { ...stateRef.current, displacement: 0, velocity: 0 };
+    setDisplacement(0);
+    setVelocity(0);
+    lastTsRef.current = null;
   };
 
-  // Spring coil visualization
-  const equilibrium = 140;
-  const massX = equilibrium + x;
-  const springCoils = 10;
-  const springStart = 20;
-  const springEnd = massX - 16;
+  // Visual positions (SVG coords)
+  const massTopY = EQUILIBRIUM_Y + displacement;
+  const springPath = buildSpringPath(CEILING_Y + 16, massTopY);
 
-  const buildSpringPath = () => {
-    const len = springEnd - springStart;
-    const coilW = 12;
-    let d = `M ${springStart} 80`;
-    for (let i = 0; i < springCoils; i++) {
-      const segLen = len / springCoils;
-      const cx1 = springStart + i * segLen + segLen * 0.25;
-      const cy1 = i % 2 === 0 ? 80 - coilW : 80 + coilW;
-      const cx2 = springStart + i * segLen + segLen * 0.75;
-      const cy2 = i % 2 === 0 ? 80 - coilW : 80 + coilW;
-      const ex = springStart + (i + 1) * segLen;
-      d += ` C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} 80`;
-    }
-    return d;
-  };
+  // Energy (normalised 0–1, scaled to bar width)
+  const maxPE = 0.5 * (k / 50) * 70 * 70;
+  const pe = Math.min(0.5 * (k / 50) * displacement * displacement, maxPE);
+  const ke = Math.max(0, maxPE - pe);
+  const BAR_W = 72;
+  const peW = maxPE > 0 ? (pe / maxPE) * BAR_W : 0;
+  const keW = maxPE > 0 ? (ke / maxPE) * BAR_W : 0;
 
-  const pe = (0.5 * k * (x / 80) * (x / 80) * 100).toFixed(0);
-  const ke = (0.5 * mass * (v / 80) * (v / 80) * 100).toFixed(0);
+  const omega = Math.sqrt(k / mass).toFixed(1);
 
   return (
-    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Spring-Mass Oscillator</p>
+    <div className="bg-[#f8fafc] rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="px-5 pt-4 pb-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+          Vertical Spring Oscillator
+        </p>
+      </div>
 
-      {/* SVG visualization */}
-      <svg width="100%" viewBox="0 0 300 160" className="mb-4" style={{ maxHeight: 140 }}>
-        {/* Wall */}
-        <rect x={0} y={0} width={18} height={160} fill="#E2E8F0" />
-        <line x1={18} y1={0} x2={18} y2={160} stroke="#94A3B8" strokeWidth={2} />
+      {/* SVG simulation */}
+      <svg
+        width="100%"
+        viewBox="0 0 290 310"
+        className="block"
+        style={{ maxHeight: 230 }}
+      >
+        {/* Ceiling hatch */}
+        <rect x={CX - 46} y={0} width={92} height={CEILING_Y} rx={3} fill="#e2e8f0" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <line
+            key={i}
+            x1={CX - 38 + i * 19}
+            y1={CEILING_Y}
+            x2={CX - 46 + i * 19}
+            y2={0}
+            stroke="#cbd5e1"
+            strokeWidth={1.5}
+          />
+        ))}
+        <line x1={CX - 46} y1={CEILING_Y} x2={CX + 46} y2={CEILING_Y} stroke="#94a3b8" strokeWidth={2} />
 
-        {/* Equilibrium line */}
-        <line x1={equilibrium} y1={40} x2={equilibrium} y2={120} stroke="#CBD5E1" strokeWidth={1} strokeDasharray="3,3" />
-        <text x={equilibrium} y={130} textAnchor="middle" fontSize={9} fill="#94A3B8">eq.</text>
+        {/* Ceiling mount pin */}
+        <circle cx={CX} cy={CEILING_Y + 2} r={4} fill="#94a3b8" />
 
-        {/* Spring */}
-        {running || x !== 0 ? (
-          <path d={buildSpringPath()} stroke="#7C3AED" strokeWidth={2} fill="none" />
-        ) : (
-          <line x1={springStart} y1={80} x2={springEnd} y2={80} stroke="#7C3AED" strokeWidth={2} />
+        {/* Equilibrium dashed line */}
+        <line
+          x1={CX - 28}
+          y1={EQUILIBRIUM_Y + MASS_SIZE / 2}
+          x2={CX + 28}
+          y2={EQUILIBRIUM_Y + MASS_SIZE / 2}
+          stroke="#cbd5e1"
+          strokeWidth={1}
+          strokeDasharray="3,3"
+        />
+        <text x={CX + 34} y={EQUILIBRIUM_Y + MASS_SIZE / 2 + 4} fontSize={8} fill="#94a3b8">
+          eq.
+        </text>
+
+        {/* Spring coil */}
+        <path
+          d={springPath}
+          stroke="#6366f1"
+          strokeWidth={2.2}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Mass block */}
+        <motion.g
+          animate={{ y: displacement }}
+          transition={{ type: "tween", duration: 0 }}
+        >
+          <rect
+            x={CX - MASS_SIZE / 2}
+            y={EQUILIBRIUM_Y}
+            width={MASS_SIZE}
+            height={MASS_SIZE}
+            rx={6}
+            fill="#6366f1"
+          />
+          <text
+            x={CX}
+            y={EQUILIBRIUM_Y + MASS_SIZE / 2 + 1}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            fontWeight={700}
+            fill="white"
+          >
+            {mass}kg
+          </text>
+        </motion.g>
+
+        {/* Displacement arrow */}
+        {Math.abs(displacement) > 4 && (
+          <g>
+            <line
+              x1={CX - 34}
+              y1={EQUILIBRIUM_Y + MASS_SIZE / 2}
+              x2={CX - 34}
+              y2={EQUILIBRIUM_Y + MASS_SIZE / 2 + displacement}
+              stroke="#f59e0b"
+              strokeWidth={1.8}
+            />
+            <circle
+              cx={CX - 34}
+              cy={EQUILIBRIUM_Y + MASS_SIZE / 2 + displacement}
+              r={3}
+              fill="#f59e0b"
+            />
+            <text
+              x={CX - 44}
+              y={EQUILIBRIUM_Y + MASS_SIZE / 2 + displacement / 2}
+              textAnchor="middle"
+              fontSize={8}
+              fill="#f59e0b"
+              fontWeight={600}
+            >
+              x
+            </text>
+          </g>
         )}
 
-        {/* Mass */}
+        {/* Energy bars — right side */}
+        <text x={195} y={140} fontSize={9} fill="#94a3b8" fontWeight={600}>
+          Energy
+        </text>
+        {/* PE bar */}
+        <rect x={195} y={150} width={BAR_W} height={10} rx={3} fill="#f1f5f9" />
         <motion.rect
-          x={massX - 16} y={64} width={32} height={32} rx={6}
-          fill="hsl(238, 80%, 50%)"
-          animate={{ x: massX - 16 }}
+          x={195}
+          y={150}
+          width={peW}
+          height={10}
+          rx={3}
+          fill="#f59e0b"
+          animate={{ width: peW }}
           transition={{ type: "tween", duration: 0 }}
         />
-        <text x={massX} y={83} textAnchor="middle" fontSize={9} fill="white" fontWeight={700}>m={mass}kg</text>
+        <text x={192} y={158} textAnchor="end" fontSize={8} fill="#f59e0b" fontWeight={700}>PE</text>
+        <text x={195 + BAR_W + 4} y={158} fontSize={7} fill="#f59e0b">
+          {pe.toFixed(0)}J
+        </text>
 
-        {/* Energy bars */}
-        <text x={240} y={50} fontSize={9} fill="#94A3B8">PE</text>
-        <rect x={240} y={55} width={40} height={8} rx={2} fill="#E2E8F0" />
-        <motion.rect x={240} y={55} width={Math.min(40, parseInt(pe) * 0.4)} height={8} rx={2} fill="#F59E0B"
-          animate={{ width: Math.min(40, parseInt(pe) * 0.4) }} />
+        {/* KE bar */}
+        <rect x={195} y={168} width={BAR_W} height={10} rx={3} fill="#f1f5f9" />
+        <motion.rect
+          x={195}
+          y={168}
+          width={keW}
+          height={10}
+          rx={3}
+          fill="#10b981"
+          animate={{ width: keW }}
+          transition={{ type: "tween", duration: 0 }}
+        />
+        <text x={192} y={176} textAnchor="end" fontSize={8} fill="#10b981" fontWeight={700}>KE</text>
+        <text x={195 + BAR_W + 4} y={176} fontSize={7} fill="#10b981">
+          {ke.toFixed(0)}J
+        </text>
 
-        <text x={240} y={80} fontSize={9} fill="#94A3B8">KE</text>
-        <rect x={240} y={85} width={40} height={8} rx={2} fill="#E2E8F0" />
-        <motion.rect x={240} y={85} width={Math.min(40, parseInt(ke) * 0.4)} height={8} rx={2} fill="#10B981"
-          animate={{ width: Math.min(40, parseInt(ke) * 0.4) }} />
+        {/* F = -kx annotation */}
+        {Math.abs(displacement) > 6 && (
+          <text
+            x={195}
+            y={200}
+            fontSize={8}
+            fill="#6366f1"
+            fontWeight={600}
+          >
+            F = {(-(k / 50) * displacement).toFixed(0)}N
+          </text>
+        )}
+
+        <text x={195} y={230} fontSize={8} fill="#94a3b8">ω = {omega} rad/s</text>
       </svg>
 
       {/* Controls */}
-      <div className="space-y-2 mb-4">
+      <div className="px-5 pb-5 space-y-2.5">
         <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-600 w-28">Spring k = {k} N/m</label>
-          <input type="range" min={10} max={200} value={k} onChange={e => { setK(+e.target.value); reset(); }}
-            className="flex-1 accent-primary" />
+          <label className="text-xs text-slate-500 w-24 flex-shrink-0">k = {k} N/m</label>
+          <input
+            type="range"
+            min={10}
+            max={200}
+            value={k}
+            onChange={(e) => { setK(+e.target.value); reset(); }}
+            className="flex-1 accent-[#6366f1]"
+          />
         </div>
         <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-600 w-28">Mass = {mass} kg</label>
-          <input type="range" min={1} max={5} value={mass} onChange={e => { setMass(+e.target.value); reset(); }}
-            className="flex-1 accent-primary" />
+          <label className="text-xs text-slate-500 w-24 flex-shrink-0">m = {mass} kg</label>
+          <input
+            type="range"
+            min={1}
+            max={5}
+            value={mass}
+            onChange={(e) => { setMass(+e.target.value); reset(); }}
+            className="flex-1 accent-[#6366f1]"
+          />
         </div>
-        <p className="text-xs text-center text-slate-500">Period T = {period} s · ω = {omega.toFixed(1)} rad/s</p>
-      </div>
-
-      <div className="flex gap-2">
-        <button onClick={toggle} className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity">
-          {running ? "Pause" : "Simulate"}
-        </button>
-        <button onClick={reset} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">
-          Reset
-        </button>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={toggle}
+            className="flex-1 h-10 rounded-full bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-bold transition-colors"
+          >
+            {running ? "Pause" : "Simulate"}
+          </button>
+          <button
+            onClick={reset}
+            className="px-5 h-10 rounded-full bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors"
+          >
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );

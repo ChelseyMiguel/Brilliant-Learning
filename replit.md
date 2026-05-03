@@ -66,28 +66,27 @@ lib/
 
 ## SVG Animation Components (artifacts/learning-platform/src/components/animations/)
 
-Each animation is a self-contained interactive React component using Framer Motion:
+Each animation is a self-contained interactive React component. Shown in `LessonIntro` for lessons that have no associated Diagramatics lab:
 
-- `CoinFlipAnimation.tsx` — flippable coin sequence with auto mode and convergence bar
-- `ProbabilityGridAnimation.tsx` — 10x10 grid with random point dropping, red hit tracking
+- `CoinFlipAnimation.tsx` — **Brilliant-style 3D draggable coin**: CSS `perspective` + `preserve-3d` + `backface-visibility:hidden` for H/T faces; pointer drag triggers `requestAnimationFrame` physics flip with 1800° spin; H: amber gradient, T: slate gradient; stats bar + Flip button
+- `ProbabilityGridAnimation.tsx` — 10×10 grid with random point dropping, red hit tracking
 - `MontyHallAnimation.tsx` — full Monty Hall simulator with stay/switch win rate tracking
 - `NeuralNetAnimation.tsx` — 3-layer SVG neural net with clickable inputs and signal pulses
-- `SpringAnimation.tsx` — real-time spring-mass oscillator with k/mass sliders and energy bars
+- `SpringAnimation.tsx` — **Vertical hanging spring**: SVG bezier coil path (10 coils, `C` curves), ceiling hatch, live PE/KE energy bars, damped SHM via `requestAnimationFrame`; k and mass sliders
 
 ### Animation ↔ Lesson Mapping (index.ts)
 
-| Lesson ID | Lesson Title | Animation |
-|-----------|-------------|-----------|
-| 2 | Gambler's Fallacy | CoinFlipAnimation |
-| 14 | Area Models of Probability | ProbabilityGridAnimation |
-| 15 | The Monty Hall Problem | MontyHallAnimation |
-| 17 | Neurons and Weights | NeuralNetAnimation |
-| 18 | The Learning Signal | NeuralNetAnimation |
-| 19 | Layers and Depth | NeuralNetAnimation |
-| 21 | Springs and Oscillation | SpringAnimation |
-| 22 | Energy Conservation | SpringAnimation |
-
-Animations are lazy-loaded and shown in a sidebar panel in the lesson player (desktop) or above the challenge (mobile).
+| Lesson ID | Lesson Title | Animation | Visible? |
+|-----------|-------------|-----------|---------|
+| 1 | What is Probability? | CoinFlipAnimation | ✅ LessonIntro |
+| 2 | Gambler's Fallacy | CoinFlipAnimation | ❌ (has CoinFlipLab) |
+| 14 | Area Models of Probability | ProbabilityGridAnimation | ❌ (has AreaModelLab) |
+| 15 | The Monty Hall Problem | MontyHallAnimation | ✅ LessonIntro |
+| 17 | Neurons and Weights | NeuralNetAnimation | ❌ (has NeuralNetLab) |
+| 18 | The Learning Signal | NeuralNetAnimation | ❌ (has NeuralNetLab) |
+| 19 | Layers and Depth | NeuralNetAnimation | ✅ LessonIntro |
+| 21 | Springs and Oscillation | SpringAnimation | ❌ (has SpringLab) |
+| 22 | Energy Conservation | SpringAnimation | ✅ LessonIntro |
 
 ## API Routes (all under /api)
 
@@ -123,18 +122,23 @@ A "discovery before practice" exploration phase that appears before the challeng
 - `labs/AreaModelLab.tsx` — 10×10 probability grid; two sliders control P(A) and P(B); shows P(A∩B) region
 - `labs/SpringLab.tsx` — Spring-mass diagram using `mechanics.spring()`; sliders for k and displacement; shows PE/KE bars
 - `labs/NeuralNetLab.tsx` — 3-layer network with signal propagation; sliders for weight and threshold
+- `labs/PulleyLab.tsx` — **Single fixed pulley**: slider controls effort drop (0–100 units); load rises by same amount; shows ropes, hatch-ceiling, pulley wheel, effort handle, load block. Uses Diagramatics y-up Cartesian coordinates (point.y = -p.y * scale internally).
 - `labs/LearningCenter.tsx` — Full-screen exploration UI: lab on left, guided discovery steps panel on right, "Start Practice" CTA
 - `labs/index.ts` — `LESSON_LABS` registry mapping lesson IDs → lab component + guided discovery steps
 
+### Diagramatics Coordinate System
+`draw_to_svg_element` uses **y-up Cartesian** (`point.y = -p.y * scale`). After rendering, the library auto-sets the inner SVG's viewBox via `getBBox()`. Use centered coordinates with positive y = visually up. The outer `svg.setAttribute("viewBox", ...)` call is ignored when `set_html_attribute=true` (default).
+
 ### Lab ↔ Lesson Mapping
 
-| Lesson ID | Lab | Discovery Theme |
-|-----------|-----|----------------|
-| 2 | CoinFlipLab | Law of Large Numbers |
-| 14 | AreaModelLab | Probability as area |
-| 17 | NeuralNetLab | Weights and activation |
-| 18 | NeuralNetLab | Signal propagation |
-| 21 | SpringLab | Hooke's Law and energy |
+| Lesson ID | Lesson Title | Lab | Discovery Theme |
+|-----------|-------------|-----|----------------|
+| 2 | Gambler's Fallacy | CoinFlipLab | Law of Large Numbers |
+| 14 | Area Models of Probability | AreaModelLab | Probability as area |
+| 17 | Neurons and Weights | NeuralNetLab | Weights and activation |
+| 18 | The Learning Signal | NeuralNetLab | Signal propagation |
+| 20 | Forces and Acceleration | PulleyLab | Force direction + fixed pulley |
+| 21 | Springs and Oscillation | SpringLab | Hooke's Law and energy |
 
 ### Lesson Player Flow
 

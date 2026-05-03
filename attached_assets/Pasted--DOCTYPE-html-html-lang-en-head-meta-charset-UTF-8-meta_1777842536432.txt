@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brilliant-Style Animations</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    #root {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .coin-face {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { 
+        opacity: 0.3;
+        transform: translateX(-50%) scale(1);
+      }
+      50% { 
+        opacity: 0.6;
+        transform: translateX(-50%) scale(1.05);
+      }
+    }
+    
+    .pulse {
+      animation: pulse 0.6s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ============= COIN FLIP ANIMATION =============
+    const CoinFlipAnimation = () => {
+      const [dragY, setDragY] = useState(0);
+      const [result, setResult] = useState('heads');
+      const [isFlipping, setIsFlipping] = useState(false);
+      const [rotation, setRotation] = useState(0);
+      const isDragging = useRef(false);
+      
+      const handleMouseDown = () => {
+        if (!isFlipping) {
+          isDragging.current = true;
+        }
+      };
+      
+      const handleMouseMove = (e) => {
+        if (isDragging.current && !isFlipping) {
+          const container = e.currentTarget;
+          const rect = container.getBoundingClientRect();
+          const y = Math.max(0, Math.min(250, e.clientY - rect.top - 80));
+          setDragY(y);
+          setRotation(y * 9); // 9 degrees per pixel
+        }
+      };
+      
+      const handleMouseUp = () => {
+        if (isDragging.current && dragY > 100 && !isFlipping) {
+          flipCoin();
+        } else if (isDragging.current) {
+          setDragY(0);
+          setRotation(0);
+        }
+        isDragging.current = false;
+      };
+      
+      const flipCoin = () => {
+        setIsFlipping(true);
+        const flipResult = Math.random() < 0.5 ? 'heads' : 'tails';
+        const targetRotation = flipResult === 'heads' ? 0 : 180;
+        
+        let startTime = null;
+        const duration = 800;
+        
+        const animate = (timestamp) => {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // Easing
+          const eased = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+          
+          setDragY(100 + eased * 200);
+          setRotation(100 * 9 + eased * 1800); // Spin while falling
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            setResult(flipResult);
+            setRotation(targetRotation);
+            setIsFlipping(false);
+            
+            // Reset after showing result
+            setTimeout(() => {
+              let resetStart = null;
+              const resetAnim = (timestamp) => {
+                if (!resetStart) resetStart = timestamp;
+                const elapsed = timestamp - resetStart;
+                const progress = Math.min(elapsed / 300, 1);
+                
+                setDragY(300 * (1 - progress));
+                setRotation(targetRotation * (1 - progress));
+                
+                if (progress < 1) {
+                  requestAnimationFrame(resetAnim);
+                } else {
+                  setDragY(0);
+                  setRotation(0);
+                }
+              };
+              requestAnimationFrame(resetAnim);
+            }, 1000);
+          }
+        };
+        
+        requestAnimationFrame(animate);
+      };
+      
+      return (
+        <div 
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{
+            position: 'relative',
+            height: '500px',
+            background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+            borderRadius: '1rem',
+            overflow: 'hidden',
+            cursor: isFlipping ? 'default' : 'grab'
+          }}
+        >
+          {/* Guide text */}
+          <div style={{
+            position: 'absolute',
+            top: '2rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: '#64748b',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            pointerEvents: 'none'
+          }}>
+            {isFlipping ? 'Flipping...' : 'Drag the coin down and release'}
+          </div>
+          
+          {/* Coin */}
+          <div
+            style={{
+              position: 'absolute',
+              top: `${80 + dragY}px`,
+              left: '50%',
+              transform: `translateX(-50%)`,
+              pointerEvents: 'none',
+              perspective: '1000px'
+            }}
+          >
+            <div style={{
+              width: '96px',
+              height: '96px',
+              position: 'relative',
+              transformStyle: 'preserve-3d',
+              transform: `rotateY(${rotation}deg)`,
+              transition: isDragging.current ? 'none' : 'transform 0.1s ease-out'
+            }}>
+              {/* Heads */}
+              <div className="coin-face" style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '2rem',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+              }}>
+                H
+              </div>
+              
+              {/* Tails */}
+              <div className="coin-face" style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '2rem',
+                transform: 'rotateY(180deg)',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+              }}>
+                T
+              </div>
+            </div>
+          </div>
+          
+          {/* Landing zone */}
+          <div 
+            className={isFlipping ? 'pulse' : ''}
+            style={{
+              position: 'absolute',
+              bottom: '3rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '128px',
+              height: '128px',
+              borderRadius: '50%',
+              border: '4px dashed #10b981',
+              opacity: isFlipping ? 0.6 : 0.3,
+              pointerEvents: 'none'
+            }} 
+          />
+          
+          {/* Result display */}
+          {!isFlipping && dragY > 250 && (
+            <div style={{
+              position: 'absolute',
+              bottom: '6rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'white',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '9999px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              fontWeight: '600',
+              pointerEvents: 'none'
+            }}>
+              Result: {result.toUpperCase()}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ============= SPRING OSCILLATION =============
+    const SpringOscillation = () => {
+      const canvasRef = useRef(null);
+      const [state, setState] = useState('idle');
+      const [compression, setCompression] = useState(0);
+      const animationRef = useRef(null);
+      
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const width = 600;
+        const height = 450;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        const x = compression;
+        const k = 50;
+        const maxE = 0.5 * k * 50 * 50;
+        const PE = 0.5 * k * x * x;
+        const KE = Math.max(0, maxE - PE);
+        
+        // Ceiling
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(width/2 - 100, 20, 200, 10);
+        
+        // Spring coil
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        
+        const springTop = 30;
+        const springBottom = 200 + x;
+        const coils = 10;
+        const coilWidth = 20;
+        
+        ctx.moveTo(width/2, springTop);
+        
+        for (let i = 0; i <= coils; i++) {
+          const y = springTop + (springBottom - springTop) * (i / coils);
+          const xOffset = i % 2 === 0 ? -coilWidth : coilWidth;
+          ctx.lineTo(width/2 + xOffset, y);
+        }
+        
+        ctx.lineTo(width/2, springBottom);
+        ctx.stroke();
+        
+        // Mass
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(width/2 - 20, springBottom, 40, 40);
+        
+        // Energy bars background
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(width/2 - 120, 250, 30, 150);
+        ctx.fillRect(width/2 - 80, 250, 30, 150);
+        
+        // PE bar
+        ctx.fillStyle = '#f59e0b';
+        const peHeight = (PE / maxE) * 150;
+        ctx.fillRect(width/2 - 120, 400 - peHeight, 30, peHeight);
+        
+        // KE bar
+        ctx.fillStyle = '#3b82f6';
+        const keHeight = (KE / maxE) * 150;
+        ctx.fillRect(width/2 - 80, 400 - keHeight, 30, keHeight);
+        
+        // Labels
+        ctx.fillStyle = '#78350f';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PE', width/2 - 105, 420);
+        
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillText('KE', width/2 - 65, 420);
+        
+      }, [compression]);
+      
+      const startOscillation = () => {
+        if (state !== 'idle') return;
+        
+        setState('compressing');
+        
+        let startTime = null;
+        const compress = (timestamp) => {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / 1000, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          
+          setCompression(-50 * eased);
+          
+          if (progress < 1) {
+            animationRef.current = requestAnimationFrame(compress);
+          } else {
+            setState('oscillating');
+            oscillate(0);
+          }
+        };
+        requestAnimationFrame(compress);
+      };
+      
+      const oscillate = (cycle) => {
+        if (cycle >= 5) {
+          setState('damped');
+          
+          let startTime = null;
+          const reset = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / 500, 1);
+            
+            setCompression(prev => prev * (1 - progress));
+            
+            if (progress < 1) {
+              animationRef.current = requestAnimationFrame(reset);
+            } else {
+              setState('idle');
+              setCompression(0);
+            }
+          };
+          requestAnimationFrame(reset);
+          return;
+        }
+        
+        const amplitude = 50 * Math.exp(-0.3 * cycle);
+        
+        // Extend phase
+        let startTime = null;
+        const extend = (timestamp) => {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / 500, 1);
+          const eased = Math.sin(progress * Math.PI / 2);
+          
+          setCompression(-amplitude + eased * 2 * amplitude);
+          
+          if (progress < 1) {
+            animationRef.current = requestAnimationFrame(extend);
+          } else {
+            // Compress phase
+            let compressStart = null;
+            const compress = (timestamp) => {
+              if (!compressStart) compressStart = timestamp;
+              const elapsed = timestamp - compressStart;
+              const progress = Math.min(elapsed / 500, 1);
+              const eased = Math.sin(progress * Math.PI / 2);
+              
+              setCompression(amplitude - eased * 2 * amplitude);
+              
+              if (progress < 1) {
+                animationRef.current = requestAnimationFrame(compress);
+              } else {
+                oscillate(cycle + 1);
+              }
+            };
+            requestAnimationFrame(compress);
+          }
+        };
+        requestAnimationFrame(extend);
+      };
+      
+      const reset = () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+        setState('idle');
+        setCompression(0);
+      };
+      
+      return (
+        <div style={{
+          position: 'relative',
+          height: '500px',
+          background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+          borderRadius: '1rem',
+          padding: '2rem'
+        }}>
+          {/* Controls */}
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            marginBottom: '1rem'
+          }}>
+            <button
+              onClick={startOscillation}
+              disabled={state !== 'idle'}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: state === 'idle' ? '#10b981' : '#94a3b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: state === 'idle' ? 'pointer' : 'not-allowed',
+                fontSize: '0.875rem'
+              }}
+            >
+              {state === 'idle' ? 'Start Oscillation' : 
+               state === 'compressing' ? 'Compressing...' : 
+               state === 'oscillating' ? 'Oscillating...' : 'Damping...'}
+            </button>
+            
+            <button
+              onClick={reset}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: '#cbd5e1',
+                color: '#475569',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Reset
+            </button>
+          </div>
+          
+          {/* Canvas */}
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={450}
+            style={{
+              display: 'block',
+              margin: '0 auto',
+              maxWidth: '100%',
+              height: 'auto'
+            }}
+          />
+        </div>
+      );
+    };
+
+    // ============= PARTICLE DIFFUSION =============
+    const ParticleDiffusion = () => {
+      const canvasRef = useRef(null);
+      const [isRunning, setIsRunning] = useState(false);
+      const particlesRef = useRef([]);
+      const animationRef = useRef(null);
+      
+      const width = 600;
+      const height = 400;
+      const particleRadius = 6;
+      
+      const initParticles = () => {
+        const newParticles = [];
+        
+        // Left: blue
+        for (let i = 0; i < 20; i++) {
+          newParticles.push({
+            id: i,
+            x: Math.random() * (width/2 - 50) + 25,
+            y: Math.random() * (height - 50) + 25,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            color: '#3b82f6'
+          });
+        }
+        
+        // Right: red
+        for (let i = 20; i < 40; i++) {
+          newParticles.push({
+            id: i,
+            x: Math.random() * (width/2 - 50) + width/2 + 25,
+            y: Math.random() * (height - 50) + 25,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            color: '#ef4444'
+          });
+        }
+        
+        particlesRef.current = newParticles;
+        drawParticles();
+      };
+      
+      const drawParticles = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        
+        // Container
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, width - 4, height - 4);
+        
+        // Divider
+        if (!isRunning) {
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(width/2, 0);
+          ctx.lineTo(width/2, height);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // Particles
+        particlesRef.current.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, particleRadius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      };
+      
+      useEffect(() => {
+        initParticles();
+      }, []);
+      
+      useEffect(() => {
+        if (!isRunning) {
+          if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+          }
+          return;
+        }
+        
+        const animate = () => {
+          // Update particles
+          particlesRef.current = particlesRef.current.map(p => {
+            let { x, y, vx, vy } = p;
+            
+            x += vx;
+            y += vy;
+            
+            // Wall bounce
+            if (x <= particleRadius || x >= width - particleRadius) {
+              vx *= -0.9;
+              x = Math.max(particleRadius, Math.min(width - particleRadius, x));
+            }
+            if (y <= particleRadius || y >= height - particleRadius) {
+              vy *= -0.9;
+              y = Math.max(particleRadius, Math.min(height - particleRadius, y));
+            }
+            
+            // Particle collisions
+            particlesRef.current.forEach(other => {
+              if (other.id === p.id) return;
+              
+              const dx = other.x - x;
+              const dy = other.y - y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              
+              if (dist < particleRadius * 2 && dist > 0) {
+                const angle = Math.atan2(dy, dx);
+                const force = 0.3;
+                vx -= Math.cos(angle) * force;
+                vy -= Math.sin(angle) * force;
+              }
+            });
+            
+            return { ...p, x, y, vx, vy };
+          });
+          
+          drawParticles();
+          animationRef.current = requestAnimationFrame(animate);
+        };
+        
+        animate();
+        
+        return () => {
+          if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+          }
+        };
+      }, [isRunning]);
+      
+      return (
+        <div style={{
+          position: 'relative',
+          height: '550px',
+          background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+          borderRadius: '1rem',
+          padding: '2rem'
+        }}>
+          {/* Controls */}
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            marginBottom: '1rem'
+          }}>
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              {isRunning ? 'Pause' : 'Start Diffusion'}
+            </button>
+            
+            <button
+              onClick={() => {
+                setIsRunning(false);
+                setTimeout(initParticles, 100);
+              }}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: '#cbd5e1',
+                color: '#475569',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Reset
+            </button>
+          </div>
+          
+          {/* Canvas */}
+          <canvas
+            ref={canvasRef}
+            width={width}
+            height={height}
+            style={{
+              display: 'block',
+              margin: '0 auto',
+              borderRadius: '0.5rem',
+              background: 'white',
+              maxWidth: '100%',
+              height: 'auto'
+            }}
+          />
+          
+          {/* Observation */}
+          {isRunning && (
+            <div style={{
+              marginTop: '1rem',
+              background: 'white',
+              padding: '1rem 1.5rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#475569', fontSize: '0.875rem' }}>
+                Notice how particles gradually mix, even though they started separated.
+                This is <span style={{ fontWeight: '600', color: '#10b981' }}>diffusion</span> — movement from high to low concentration.
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ============= MAIN APP =============
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('coin');
+      
+      const labs = [
+        { id: 'coin', title: 'Coin Flip Physics', component: CoinFlipAnimation },
+        { id: 'spring', title: 'Spring Oscillation', component: SpringOscillation },
+        { id: 'diffusion', title: 'Particle Diffusion', component: ParticleDiffusion }
+      ];
+      
+      const ActiveLab = labs.find(l => l.id === activeTab).component;
+      
+      return (
+        <div>
+          {/* Header */}
+          <div style={{
+            marginBottom: '2rem',
+            textAlign: 'center'
+          }}>
+            <h1 style={{
+              color: 'white',
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              marginBottom: '0.5rem'
+            }}>
+              Brilliant-Style Interactive Animations
+            </h1>
+            <p style={{
+              color: '#94a3b8',
+              fontSize: '0.875rem'
+            }}>
+              Explore concepts through hands-on experimentation
+            </p>
+          </div>
+          
+          {/* Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            marginBottom: '1.5rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
+            {labs.map(lab => (
+              <button
+                key={lab.id}
+                onClick={() => setActiveTab(lab.id)}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === lab.id ? '#10b981' : '#334155',
+                  color: 'white',
+                  transition: 'background 0.2s',
+                  fontSize: '0.875rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== lab.id) {
+                    e.target.style.background = '#475569';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== lab.id) {
+                    e.target.style.background = '#334155';
+                  }
+                }}
+              >
+                {lab.title}
+              </button>
+            ))}
+          </div>
+          
+          {/* Active Lab */}
+          <div style={{
+            background: 'white',
+            borderRadius: '1rem',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            overflow: 'hidden'
+          }}>
+            <ActiveLab />
+          </div>
+          
+          {/* Footer */}
+          <div style={{
+            marginTop: '2rem',
+            textAlign: 'center',
+            color: '#94a3b8',
+            fontSize: '0.75rem'
+          }}>
+            Built with React + Canvas • Inspired by Brilliant.org
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
