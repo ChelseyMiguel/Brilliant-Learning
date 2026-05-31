@@ -60,7 +60,13 @@ export function patchFetchForStaticHost() {
 
     try {
       const res = await original(input, init);
-      if (res.ok) return res;
+      // If ok AND content-type is JSON, pass through. Otherwise treat as missing backend.
+      if (res.ok) {
+        const ct = res.headers.get("content-type") ?? "";
+        if (ct.includes("application/json")) return res;
+        console.warn(`[Lumina] API ${url} returned non-JSON (${ct}), using empty mock`);
+        return syntheticResponse(url);
+      }
       // Non-2xx → return synthetic empty
       console.warn(`[Lumina] API ${url} → ${res.status}, using empty mock`);
       return syntheticResponse(url);

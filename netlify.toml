@@ -3,6 +3,14 @@
   command = "pnpm --filter @workspace/learning-platform build"
   publish = "artifacts/learning-platform/dist/public"
 
+# Let API calls fail naturally (404) so patchFetch can return empty data
+[[redirects]]
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 404
+  force = true
+
+# SPA fallback for all other routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
