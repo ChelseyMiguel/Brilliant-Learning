@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             Refresh
           </button>
-          {import.meta.env.DEV && (
+          {(
             <pre style={{
               marginTop: 24, fontSize: 11, color: "#ef4444",
               background: "#fff1f1", padding: 12, borderRadius: 8,
