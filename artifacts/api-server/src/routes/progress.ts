@@ -87,7 +87,7 @@ router.get("/me", async (req, res) => {
     const completedChallenges = await db.select().from(challengeAttemptsTable)
       .where(and(eq(challengeAttemptsTable.clerkId, clerkId), eq(challengeAttemptsTable.correct, true)));
 
-    res.json({
+    return res.json({
       userId: clerkId,
       totalXp: profile.totalXp,
       streakDays: profile.streakDays,
@@ -97,7 +97,7 @@ router.get("/me", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get progress");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -179,7 +179,7 @@ router.post("/complete-challenge", async (req, res) => {
     newTotalXp = updatedProfile?.totalXp ?? 0;
     newStreak = updatedProfile?.streakDays ?? 0;
 
-    res.json({
+    return res.json({
       correct: isCorrect,
       xpEarned,
       totalXp: newTotalXp,
@@ -189,7 +189,7 @@ router.post("/complete-challenge", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to complete challenge");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -217,7 +217,7 @@ router.get("/lesson-progress/:lessonId", async (req, res) => {
     const completedChallengeIds = [...new Set(correctAttempts.map(a => a.challengeId))];
     const xpEarned = correctAttempts.reduce((sum, a) => sum + a.xpEarned, 0);
 
-    res.json({
+    return res.json({
       lessonId,
       completed: lessonProgress?.completed ?? false,
       completedChallenges: completedChallengeIds,
@@ -225,7 +225,7 @@ router.get("/lesson-progress/:lessonId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get lesson progress");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -260,7 +260,7 @@ router.get("/course-progress/:courseId", async (req, res) => {
       ? Math.round((completedLessons / lessons.length) * 100)
       : 0;
 
-    res.json({
+    return res.json({
       courseId,
       completedLessons,
       totalLessons: lessons.length,
@@ -270,7 +270,7 @@ router.get("/course-progress/:courseId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get course progress");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -346,10 +346,10 @@ router.get("/review", async (req, res) => {
     );
 
     const filtered = reviewChallenges.filter(Boolean);
-    res.json({ challenges: filtered, total: filtered.length });
+    return res.json({ challenges: filtered, total: filtered.length });
   } catch (err) {
     req.log.error({ err }, "Failed to get review challenges");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

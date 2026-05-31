@@ -17,7 +17,7 @@ router.get("/:lessonId", async (req, res) => {
       .where(eq(challengesTable.lessonId, lessonId))
       .orderBy(challengesTable.order);
 
-    res.json({
+    return res.json({
       id: lesson.id,
       courseId: lesson.courseId,
       title: lesson.title,
@@ -39,7 +39,7 @@ router.get("/:lessonId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get lesson");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

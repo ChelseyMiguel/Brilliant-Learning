@@ -12,7 +12,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const courses = await db.select().from(coursesTable).orderBy(coursesTable.id);
-    res.json(courses.map((c) => ({
+    return res.json(courses.map((c) => ({
       id: c.id,
       title: c.title,
       description: c.description,
@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
     })));
   } catch (err) {
     req.log.error({ err }, "Failed to list courses");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -41,7 +41,7 @@ router.get("/:courseId", async (req, res) => {
       .where(eq(lessonsTable.courseId, courseId))
       .orderBy(lessonsTable.order);
 
-    res.json({
+    return res.json({
       id: course.id,
       title: course.title,
       description: course.description,
@@ -63,7 +63,7 @@ router.get("/:courseId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get course");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -76,7 +76,7 @@ router.get("/:courseId/lessons", async (req, res) => {
       .where(eq(lessonsTable.courseId, courseId))
       .orderBy(lessonsTable.order);
 
-    res.json(lessons.map((l) => ({
+    return res.json(lessons.map((l) => ({
       id: l.id,
       courseId: l.courseId,
       title: l.title,
@@ -87,7 +87,7 @@ router.get("/:courseId/lessons", async (req, res) => {
     })));
   } catch (err) {
     req.log.error({ err }, "Failed to list lessons");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

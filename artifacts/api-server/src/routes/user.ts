@@ -49,7 +49,7 @@ router.get("/profile", async (req, res) => {
 
   try {
     const profile = await getOrCreateProfile(clerkId);
-    res.json({
+    return res.json({
       id: String(profile.id),
       clerkId: profile.clerkId,
       displayName: profile.displayName,
@@ -59,7 +59,7 @@ router.get("/profile", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get user profile");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -140,7 +140,7 @@ router.get("/summary", async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       totalXp: profile.totalXp,
       streakDays: profile.streakDays,
       lessonsCompleted: completedLessons.length,
@@ -161,7 +161,7 @@ router.get("/summary", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard summary");
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
