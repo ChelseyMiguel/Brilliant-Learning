@@ -1,0 +1,9 @@
+[build]
+  base = "."
+  command = "pnpm --filter @workspace/learning-platform build"
+  publish = "artifacts/learning-platform/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
