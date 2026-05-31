@@ -1,7 +1,7 @@
 import DiagramaticsInteractive, { type DiagramaticsSetup } from "./DiagramaticsInteractive";
 
 /**
- * Pulley Lab — single fixed pulley using Diagramatics y-up Cartesian coordinates.
+ * Pulley Lab - single fixed pulley using Diagramatics y-up Cartesian coordinates.
  * Diagramatics negates y when rendering (point.y = -p.y), so positive y = visual top.
  * Origin (0,0) is centred; the library auto-fits content via getBBox().
  *
@@ -126,7 +126,7 @@ const setup: DiagramaticsSetup = (int, lib) => {
     const caption = text(
       drop > 5
         ? `Pulled ${Math.round(drop)} → Load rose ${Math.round(drop)}  |  F = F`
-        : "Drag the slider — pull the rope and watch the load rise"
+        : "Drag the slider - pull the rope and watch the load rise"
     ).fill("#64748b").translate(V2(0, -130));
 
     const all = diagram_combine(

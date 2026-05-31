@@ -100,7 +100,7 @@ export default function MontyHallAnimation() {
         {phase === "pick" && (
           <motion.p key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="text-sm text-center text-slate-600 mb-3">
-            Pick a door — one hides a car, two hide goats.
+            Pick a door - one hides a car, two hide goats.
           </motion.p>
         )}
         {phase === "reveal" && (

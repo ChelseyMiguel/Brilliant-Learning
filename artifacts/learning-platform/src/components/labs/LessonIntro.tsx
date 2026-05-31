@@ -1,8 +1,9 @@
 import { Suspense, useState, type ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, BookOpen, Lightbulb, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Lightbulb, ChevronRight, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
 interface Lesson {
   id: number;
@@ -15,6 +16,7 @@ interface Props {
   lesson: Lesson;
   AnimationComponent: ComponentType | null;
   onStartPractice: () => void;
+  courseId?: number;
 }
 
 // Category-specific warm-up prompts
@@ -32,7 +34,7 @@ const CATEGORY_PROMPTS: Record<string, { heading: string; body: string }[]> = {
   statistics: [
     {
       heading: "What does your gut say?",
-      body: "Probability and statistics are famous for surprising us. Before the practice questions, think of an outcome you'd expect — it might be exactly right, or dramatically wrong.",
+      body: "Probability and statistics are famous for surprising us. Before the practice questions, think of an outcome you'd expect - it might be exactly right, or dramatically wrong.",
     },
     {
       heading: "Think about sample size",
@@ -46,7 +48,7 @@ const CATEGORY_PROMPTS: Record<string, { heading: string; body: string }[]> = {
     },
     {
       heading: "What stays constant?",
-      body: "Many physics problems hinge on what's conserved — energy, momentum, charge. Think about what quantity might remain the same throughout this lesson's scenario.",
+      body: "Many physics problems hinge on what's conserved - energy, momentum, charge. Think about what quantity might remain the same throughout this lesson's scenario.",
     },
   ],
   "computer science": [
@@ -74,7 +76,7 @@ const CATEGORY_PROMPTS: Record<string, { heading: string; body: string }[]> = {
 const FALLBACK_PROMPTS = [
   {
     heading: "What do you already know?",
-    body: "Before jumping into questions, spend 30 seconds activating what you know about this topic. Even partial knowledge helps — your brain connects new ideas to existing ones.",
+    body: "Before jumping into questions, spend 30 seconds activating what you know about this topic. Even partial knowledge helps - your brain connects new ideas to existing ones.",
   },
   {
     heading: "What would surprise you?",
@@ -91,7 +93,7 @@ function getPrompts(category: string | null | undefined) {
   return FALLBACK_PROMPTS;
 }
 
-export default function LessonIntro({ lesson, AnimationComponent, onStartPractice }: Props) {
+export default function LessonIntro({ lesson, AnimationComponent, onStartPractice, courseId }: Props) {
   const [openStep, setOpenStep] = useState<number | null>(null);
   const [visitedSteps, setVisitedSteps] = useState<Set<number>>(new Set());
   const prompts = getPrompts(lesson.category);
@@ -107,7 +109,17 @@ export default function LessonIntro({ lesson, AnimationComponent, onStartPractic
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="border-b border-border bg-card px-6 py-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        {courseId && (
+          <Link href={`/courses/${courseId}`}>
+            <button
+              className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              title="Back to course"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </Link>
+        )}
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
           <BookOpen className="w-4 h-4 text-primary" />
         </div>
         <div>
@@ -168,7 +180,7 @@ export default function LessonIntro({ lesson, AnimationComponent, onStartPractic
                   </motion.div>
                   <h2 className="text-lg font-semibold mb-3">Before you start</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                    Open the prompts on the right and take a moment to think — even 60 seconds of preparation
+                    Open the prompts on the right and take a moment to think - even 60 seconds of preparation
                     makes the practice questions much more memorable.
                   </p>
 
@@ -273,7 +285,7 @@ export default function LessonIntro({ lesson, AnimationComponent, onStartPractic
                 <motion.div key="ready" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
                   <div className="flex items-center gap-1.5 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-secondary" />
-                    <p className="text-xs text-secondary font-semibold">You're primed — let's go!</p>
+                    <p className="text-xs text-secondary font-semibold">You're primed - let's go!</p>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
                     Apply what you just thought about to the practice challenges.

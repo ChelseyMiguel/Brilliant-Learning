@@ -41,9 +41,11 @@
     "@replit/vite-plugin-cartographer": "catalog:",
     "@replit/vite-plugin-dev-banner": "catalog:",
     "@replit/vite-plugin-runtime-error-modal": "catalog:",
+    "@rollup/rollup-darwin-arm64": "^4.60.4",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "catalog:",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -76,6 +78,7 @@
   },
   "dependencies": {
     "@clerk/react": "^6.5.0",
+    "canvas-confetti": "^1.9.4",
     "diagramatics": "^1.8.7"
   }
 }

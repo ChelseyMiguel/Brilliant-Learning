@@ -219,7 +219,7 @@ export default function SpringAnimation() {
           </g>
         )}
 
-        {/* Energy bars — right side */}
+        {/* Energy bars - right side */}
         <text x={195} y={140} fontSize={9} fill="#94a3b8" fontWeight={600}>
           Energy
         </text>

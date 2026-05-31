@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, Zap, ArrowRight, RotateCcw } from "lucide-react";
+import { Check, X, Zap, ArrowRight, RotateCcw } from "lucide-react";
 
 interface FeedbackData {
   correct: boolean;
@@ -13,55 +13,88 @@ interface PanelProps {
 }
 
 export function BottomFeedbackPanel({ feedback }: PanelProps) {
+  const isCorrect = feedback.correct;
+
   return (
     <motion.div
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
-      transition={{ type: "spring", damping: 32, stiffness: 420 }}
-      className={`px-6 pt-5 pb-4 ${
-        feedback.correct
-          ? "bg-[#e8faf0] border-t-2 border-[#b7efd0]"
-          : "bg-[#fef2f2] border-t-2 border-[#fecaca]"
+      transition={{ type: "spring", damping: 30, stiffness: 400 }}
+      className={`px-6 pt-5 pb-5 border-t-4 ${
+        isCorrect
+          ? "bg-[#d7f5e3] border-[#58cc02]"
+          : "bg-[#ffdfe0] border-[#ff4b4b]"
       }`}
       data-testid="challenge-feedback"
     >
-      <div className="max-w-xl mx-auto">
-        <div className="flex items-center gap-2.5 mb-1.5">
-          {feedback.correct
-            ? <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-            : <XCircle className="w-6 h-6 text-rose-500 flex-shrink-0" />}
-          <span
-            className={`text-[1.1rem] font-bold leading-tight ${
-              feedback.correct ? "text-emerald-700" : "text-rose-600"
-            }`}
-          >
-            {feedback.correct ? "Correct!" : "Not quite"}
-          </span>
-          {feedback.correct && feedback.xpEarned > 0 && (
-            <span
-              className="ml-auto text-sm font-semibold text-emerald-600 flex items-center gap-1"
-              data-testid="xp-earned"
+      <div className="max-w-xl mx-auto flex items-start gap-4">
+        {/* Animated icon circle */}
+        <motion.div
+          initial={{ scale: 0, rotate: -20 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 18, delay: 0.05 }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ${
+            isCorrect ? "bg-[#58cc02] shadow-green-200" : "bg-[#ff4b4b] shadow-red-200"
+          }`}
+        >
+          {isCorrect
+            ? <Check className="w-6 h-6 text-white" strokeWidth={3} />
+            : <X className="w-6 h-6 text-white" strokeWidth={3} />}
+        </motion.div>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`text-lg font-extrabold tracking-tight ${
+                isCorrect ? "text-[#2a7a00]" : "text-[#d62e2e]"
+              }`}
             >
-              <Zap className="w-3.5 h-3.5" />
-              +{feedback.xpEarned} XP
-            </span>
+              {isCorrect ? "Great job!" : "Oops!"}
+            </motion.span>
+
+            {isCorrect && feedback.xpEarned > 0 && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.6, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.22, type: "spring", stiffness: 380 }}
+                className="flex items-center gap-1 bg-[#58cc02] text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm"
+                data-testid="xp-earned"
+              >
+                <Zap className="w-3 h-3" />
+                +{feedback.xpEarned} XP
+              </motion.span>
+            )}
+          </div>
+
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14 }}
+            className={`text-sm leading-relaxed ${
+              isCorrect ? "text-[#2a7a00]" : "text-[#d62e2e]"
+            }`}
+            data-testid="challenge-explanation"
+          >
+            {feedback.explanation}
+          </motion.p>
+
+          {!isCorrect && feedback.hint && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.22 }}
+              className="text-xs text-[#d62e2e]/70 mt-1.5 font-medium"
+              data-testid="challenge-hint"
+            >
+              Hint: {feedback.hint}
+            </motion.p>
           )}
         </div>
-        <p
-          className="text-sm text-gray-700 leading-relaxed"
-          data-testid="challenge-explanation"
-        >
-          {feedback.explanation}
-        </p>
-        {!feedback.correct && feedback.hint && (
-          <p
-            className="text-sm text-gray-500 mt-1.5 italic"
-            data-testid="challenge-hint"
-          >
-            Hint: {feedback.hint}
-          </p>
-        )}
       </div>
     </motion.div>
   );
@@ -93,60 +126,62 @@ export function CheckAnswerButton({
   };
 
   const label = pending
-    ? "Checking…"
+    ? "Checking..."
     : challengeState === "correct"
     ? isLastChallenge
-      ? "Complete lesson"
+      ? "Finish lesson"
       : "Continue"
     : challengeState === "incorrect"
     ? "Try again"
-    : "Check";
+    : "Check answer";
 
-  const btnClass =
-    challengeState === "correct"
-      ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-200"
-      : challengeState === "incorrect"
-      ? "bg-white text-rose-600 border-2 border-rose-300 hover:bg-rose-50"
-      : disabled
-      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-      : "bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-sm shadow-indigo-200";
+  const isIdle = challengeState === "idle";
+  const isCorrect = challengeState === "correct";
+  const isIncorrect = challengeState === "incorrect";
 
-  const TrailingIcon =
-    challengeState === "correct"
-      ? ArrowRight
-      : challengeState === "incorrect"
-      ? RotateCcw
-      : null;
+  const btnStyle = isCorrect
+    ? "bg-[#58cc02] hover:bg-[#4db802] text-white shadow-[0_4px_0_#3a9900] active:shadow-[0_2px_0_#3a9900] active:translate-y-[2px]"
+    : isIncorrect
+    ? "bg-white text-[#d62e2e] border-2 border-[#ff9999] shadow-[0_4px_0_#ffcccc] active:shadow-[0_2px_0_#ffcccc] active:translate-y-[2px] hover:bg-rose-50"
+    : disabled
+    ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+    : "bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-[0_4px_0_#3730a3] active:shadow-[0_2px_0_#3730a3] active:translate-y-[2px]";
+
+  const Icon =
+    isCorrect ? ArrowRight
+    : isIncorrect ? RotateCcw
+    : null;
 
   return (
     <motion.button
+      layout
       animate={
-        challengeState === "incorrect"
-          ? { x: [0, -9, 9, -7, 7, -4, 4, 0] }
-          : challengeState === "correct"
-          ? { scale: [1, 1.04, 0.98, 1] }
+        isIncorrect
+          ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
+          : isCorrect
+          ? { scale: [1, 1.05, 0.97, 1.02, 1] }
           : {}
       }
       transition={
-        challengeState === "incorrect"
-          ? { duration: 0.45 }
-          : { duration: 0.3 }
+        isIncorrect
+          ? { duration: 0.5, ease: "easeInOut" }
+          : isCorrect
+          ? { duration: 0.4, ease: "easeOut" }
+          : {}
       }
-      whileHover={!disabled || challengeState !== "idle" ? { scale: 1.01 } : {}}
-      whileTap={!disabled || challengeState !== "idle" ? { scale: 0.98 } : {}}
+      whileHover={isIdle && !disabled ? { scale: 1.02 } : {}}
+      whileTap={!disabled ? { scale: 0.97 } : {}}
       onClick={handleClick}
-      disabled={disabled && challengeState === "idle"}
+      disabled={disabled && isIdle}
       data-testid={
-        challengeState === "correct"
-          ? "button-next-challenge"
-          : challengeState === "incorrect"
-          ? "button-retry"
-          : "button-check-answer"
+        isCorrect ? "button-next-challenge"
+        : isIncorrect ? "button-retry"
+        : "button-check-answer"
       }
-      className={`flex-1 h-14 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 ${btnClass}`}
+      className={`flex-1 h-14 rounded-2xl font-extrabold text-base transition-all flex items-center justify-center gap-2 select-none ${btnStyle}`}
     >
       {label}
-      {TrailingIcon && <TrailingIcon className="w-4 h-4" />}
+      {Icon && <Icon className="w-4 h-4" />}
     </motion.button>
   );
 }

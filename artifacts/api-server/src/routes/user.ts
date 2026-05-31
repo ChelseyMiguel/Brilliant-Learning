@@ -9,10 +9,24 @@ import {
 } from "@workspace/db";
 import { eq, and, gte } from "drizzle-orm";
 
+async function resetStaleStreak(clerkId: string): Promise<void> {
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.clerkId, clerkId));
+  if (!profile || profile.streakDays === 0 || !profile.lastActiveDate) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  if (profile.lastActiveDate !== today && profile.lastActiveDate !== yesterdayStr) {
+    await db.update(userProfilesTable).set({ streakDays: 0 }).where(eq(userProfilesTable.clerkId, clerkId));
+  }
+}
+
 const router = Router();
 
-function getClerkId(req: any): string | null {
-  return req.auth?.userId ?? null;
+function getClerkId(_req: any): string | null {
+  return "demo-user";
 }
 
 async function getOrCreateProfile(clerkId: string, displayName = "Learner") {
@@ -54,6 +68,8 @@ router.get("/summary", async (req, res) => {
   if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
 
   try {
+    await getOrCreateProfile(clerkId);
+    await resetStaleStreak(clerkId);
     const profile = await getOrCreateProfile(clerkId);
 
     const completedLessons = await db.select().from(userProgressTable)

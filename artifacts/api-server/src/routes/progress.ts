@@ -13,8 +13,8 @@ import { CompleteChallengeBody } from "@workspace/api-zod";
 
 const router = Router();
 
-function getClerkId(req: any): string | null {
-  return req.auth?.userId ?? null;
+function getClerkId(_req: any): string | null {
+  return "demo-user";
 }
 
 async function getOrCreateProfile(clerkId: string, displayName = "Learner") {
@@ -31,13 +31,28 @@ async function getOrCreateProfile(clerkId: string, displayName = "Learner") {
   return created;
 }
 
+async function resetStaleStreak(clerkId: string): Promise<void> {
+  const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.clerkId, clerkId));
+  if (!profile || profile.streakDays === 0 || !profile.lastActiveDate) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  if (profile.lastActiveDate !== today && profile.lastActiveDate !== yesterdayStr) {
+    await db.update(userProfilesTable)
+      .set({ streakDays: 0 })
+      .where(eq(userProfilesTable.clerkId, clerkId));
+  }
+}
+
 async function updateStreak(clerkId: string): Promise<number> {
   const [profile] = await db.select().from(userProfilesTable).where(eq(userProfilesTable.clerkId, clerkId));
   if (!profile) return 0;
 
   const today = new Date().toISOString().slice(0, 10);
   const lastDate = profile.lastActiveDate;
-
   let newStreak = profile.streakDays;
 
   if (lastDate !== today) {
@@ -47,8 +62,6 @@ async function updateStreak(clerkId: string): Promise<number> {
 
     if (lastDate === yesterdayStr) {
       newStreak = profile.streakDays + 1;
-    } else if (!lastDate) {
-      newStreak = 1;
     } else {
       newStreak = 1;
     }
@@ -66,6 +79,8 @@ router.get("/me", async (req, res) => {
   if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
 
   try {
+    await getOrCreateProfile(clerkId);
+    await resetStaleStreak(clerkId);
     const profile = await getOrCreateProfile(clerkId);
     const completedLessons = await db.select().from(userProgressTable)
       .where(and(eq(userProgressTable.clerkId, clerkId), eq(userProgressTable.completed, true)));
@@ -99,7 +114,13 @@ router.post("/complete-challenge", async (req, res) => {
     const [challenge] = await db.select().from(challengesTable).where(eq(challengesTable.id, challengeId));
     if (!challenge) return res.status(404).json({ error: "Challenge not found" });
 
-    const isCorrect = answer.trim().toLowerCase() === challenge.correctAnswer.trim().toLowerCase();
+    let isCorrect: boolean;
+    if (challenge.type === "multiple_choice" && challenge.options) {
+      const opts = challenge.options as { id: string; text: string; isCorrect: boolean }[];
+      isCorrect = opts.find((o) => o.id === answer)?.isCorrect ?? false;
+    } else {
+      isCorrect = answer.trim().toLowerCase() === challenge.correctAnswer.trim().toLowerCase();
+    }
     const xpEarned = isCorrect ? Math.max(challenge.xpReward - (attemptNumber - 1) * 2, 1) : 0;
 
     await db.insert(challengeAttemptsTable).values({
@@ -249,6 +270,85 @@ router.get("/course-progress/:courseId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get course progress");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/review", async (req, res) => {
+  const clerkId = getClerkId(req);
+  if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    // Challenges the user attempted but never got correct
+    const wrongAttempts = await db
+      .select({ challengeId: challengeAttemptsTable.challengeId })
+      .from(challengeAttemptsTable)
+      .where(
+        and(
+          eq(challengeAttemptsTable.clerkId, clerkId),
+          eq(challengeAttemptsTable.correct, false)
+        )
+      );
+
+    const correctAttempts = await db
+      .select({ challengeId: challengeAttemptsTable.challengeId })
+      .from(challengeAttemptsTable)
+      .where(
+        and(
+          eq(challengeAttemptsTable.clerkId, clerkId),
+          eq(challengeAttemptsTable.correct, true)
+        )
+      );
+
+    const correctIds = new Set(correctAttempts.map((a) => a.challengeId));
+    const reviewIds = [
+      ...new Set(
+        wrongAttempts
+          .map((a) => a.challengeId)
+          .filter((id) => !correctIds.has(id))
+      ),
+    ].slice(0, 12);
+
+    if (reviewIds.length === 0) {
+      return res.json({ challenges: [], total: 0 });
+    }
+
+    const allChallenges = await db
+      .select()
+      .from(challengesTable)
+      .where(eq(challengesTable.id, reviewIds[0]));
+
+    // fetch all review challenges
+    const reviewChallenges = await Promise.all(
+      reviewIds.map(async (id) => {
+        const [c] = await db
+          .select()
+          .from(challengesTable)
+          .where(eq(challengesTable.id, id));
+        if (!c) return null;
+        const [l] = await db
+          .select({ title: lessonsTable.title, courseId: lessonsTable.courseId })
+          .from(lessonsTable)
+          .where(eq(lessonsTable.id, c.lessonId));
+        return {
+          id: c.id,
+          lessonId: c.lessonId,
+          lessonTitle: l?.title ?? "",
+          type: c.type,
+          question: c.question,
+          options: c.options ?? null,
+          correctAnswer: c.correctAnswer,
+          explanation: c.explanation,
+          hint: c.hint ?? null,
+          xpReward: c.xpReward,
+        };
+      })
+    );
+
+    const filtered = reviewChallenges.filter(Boolean);
+    res.json({ challenges: filtered, total: filtered.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get review challenges");
     res.status(500).json({ error: "Internal server error" });
   }
 });

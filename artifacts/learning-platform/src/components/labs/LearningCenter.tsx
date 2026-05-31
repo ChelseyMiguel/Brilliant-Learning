@@ -1,17 +1,19 @@
 import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, FlaskConical, ChevronRight, Compass, Sparkles } from "lucide-react";
+import { ArrowRight, FlaskConical, ChevronRight, Compass, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LAB_COMPONENTS, type LessonLab } from "./index";
+import { Link } from "wouter";
 
 interface Props {
   lab: LessonLab;
   lessonTitle: string;
   onStartPractice: () => void;
+  courseId?: number;
 }
 
-export default function LearningCenter({ lab, lessonTitle, onStartPractice }: Props) {
+export default function LearningCenter({ lab, lessonTitle, onStartPractice, courseId }: Props) {
   const [openStep, setOpenStep] = useState<number | null>(null);
   const [visitedSteps, setVisitedSteps] = useState<Set<number>>(new Set());
 
@@ -29,7 +31,17 @@ export default function LearningCenter({ lab, lessonTitle, onStartPractice }: Pr
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="border-b border-border bg-card px-6 py-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        {courseId && (
+          <Link href={`/courses/${courseId}`}>
+            <button
+              className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              title="Back to course"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </Link>
+        )}
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
           <FlaskConical className="w-4 h-4 text-primary" />
         </div>
         <div>
@@ -89,7 +101,7 @@ export default function LearningCenter({ lab, lessonTitle, onStartPractice }: Pr
               </p>
             </div>
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              Open any prompt in any order — they're starting points, not instructions.
+              Open any prompt in any order - they're starting points, not instructions.
             </p>
 
             <div className="space-y-2">
@@ -166,7 +178,7 @@ export default function LearningCenter({ lab, lessonTitle, onStartPractice }: Pr
                   <div className="flex items-center gap-1.5 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-secondary" />
                     <p className="text-xs text-secondary font-semibold">
-                      All prompts explored — ready to practice!
+                      All prompts explored - ready to practice!
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4 leading-relaxed">

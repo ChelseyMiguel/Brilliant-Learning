@@ -126,7 +126,7 @@ export default function CoinFlipAnimation() {
             ["--lum-flips" as any]: flips,
           }}
         >
-          {/* Heads face — front (+Z) */}
+          {/* Heads face - front (+Z) */}
           <div
             style={{
               position:         "absolute",
@@ -151,7 +151,7 @@ export default function CoinFlipAnimation() {
             }}>H</span>
           </div>
 
-          {/* Tails face — back (−Z, rotated so lettering reads correctly) */}
+          {/* Tails face - back (−Z, rotated so lettering reads correctly) */}
           <div
             style={{
               position:         "absolute",
