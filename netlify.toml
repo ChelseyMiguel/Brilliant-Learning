@@ -1,7 +1,7 @@
 [build]
   base = "."
   command = "pnpm --filter @workspace/learning-platform build"
-  publish = "artifacts/learning-platform/dist"
+  publish = "artifacts/learning-platform/dist/public"
 
 [[redirects]]
   from = "/*"
